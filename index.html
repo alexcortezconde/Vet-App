@@ -1,15 +1,17 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VetLink</title>
+    <title>PetCare</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
@@ -20,10 +22,19 @@
               secondary: '#1B3B36',
               accent: '#FF9F43',
               crema: '#FCF8F2',
+              darkBg: '#0F172A',
+              darkCard: '#1E293B',
             },
             borderRadius: {
               '4xl': '32px',
               '5xl': '40px',
+            },
+            boxShadow: {
+              'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.025)',
+              'md': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+              'lg': '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)',
+              'xl': '0 15px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -5px rgba(0, 0, 0, 0.02)',
+              '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.125)',
             }
           }
         }
@@ -42,12 +53,14 @@
 }
 </script>
 <style>
-  body { font-family: 'Outfit', sans-serif; background-color: #FCF8F2; color: #1B3B36; }
+  body { font-family: 'Outfit', sans-serif; transition: background-color 0.3s ease; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .map-dots { background-image: radial-gradient(#1B3B36 1px, transparent 1px); background-size: 20px 20px; }
+  .dark .map-dots { background-image: radial-gradient(#cbd5e1 1px, transparent 1px); }
 </style>
 </head>
-<body class="overflow-x-hidden">
+<body class="overflow-x-hidden bg-crema dark:bg-darkBg text-secondary dark:text-slate-200">
     <div id="root"></div>
 </body>
 </html>

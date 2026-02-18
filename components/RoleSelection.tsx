@@ -11,11 +11,11 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelect }) => {
   return (
     <div className="min-h-screen bg-crema flex flex-col items-center justify-center p-8 space-y-12">
       <div className="text-center space-y-4">
-        <div className="w-20 h-20 bg-primary rounded-3xl mx-auto flex items-center justify-center shadow-2xl rotate-6">
+        <div className="w-20 h-20 bg-primary rounded-3xl mx-auto flex items-center justify-center shadow-2xl rotate-6 shadow-primary/20">
           <Heart className="w-10 h-10 text-white fill-white" />
         </div>
         <div>
-          <h1 className="text-4xl font-black text-secondary tracking-tighter">VetLink</h1>
+          <h1 className="text-4xl font-black text-secondary tracking-tighter">PetCare</h1>
           <p className="text-slate-400 font-bold uppercase tracking-widest text-[11px] mt-1">Plataforma Integral de Salud</p>
         </div>
       </div>
@@ -48,13 +48,13 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelect }) => {
 const RoleCard = ({ icon, title, desc, onClick, accent }: any) => (
   <button 
     onClick={onClick}
-    className={`w-full bg-white p-8 rounded-5xl border-2 border-white shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all text-left flex items-center gap-6 group`}
+    className={`w-full bg-white p-8 rounded-5xl border-2 border-white shadow-md hover:shadow-xl hover:-translate-y-1 transition-all text-left flex items-center gap-6 group`}
   >
-    <div className={`w-16 h-16 rounded-3xl flex items-center justify-center ${accent === 'primary' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'} group-hover:scale-110 transition-transform`}>
+    <div className={`w-16 h-16 rounded-3xl flex items-center justify-center ${accent === 'primary' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'} group-hover:scale-110 transition-transform shadow-inner`}>
       {icon}
     </div>
     <div className="flex-1">
-      <h3 className="text-xl font-black text-secondary">{title}</h3>
+      <h3 className="text-xl font-black text-secondary leading-none mb-1">{title}</h3>
       <p className="text-xs text-slate-400 font-medium">{desc}</p>
     </div>
   </button>

@@ -153,7 +153,8 @@ export const VetAppointments: React.FC = () => {
   );
 };
 
-const AppointmentCard = ({ app, onClick }: { app: Appointment; onClick: () => void }) => (
+// Fixed AppointmentCard by using React.FC to handle standard React props like 'key'
+const AppointmentCard: React.FC<{ app: Appointment; onClick: () => void }> = ({ app, onClick }) => (
   <div 
     onClick={onClick}
     className="bg-white p-6 rounded-5xl border border-white shadow-sm hover:shadow-xl transition-all flex items-center gap-5 group cursor-pointer"
