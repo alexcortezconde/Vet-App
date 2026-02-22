@@ -23,8 +23,8 @@ import {
 const initialPets: Pet[] = [
   {
     id: 'dog-1',
-    name: 'Odi',
-    breed: 'Cocker Spaniel',
+    name: 'Max',
+    breed: 'Boxer',
     age: 9,
     sex: 'Male',
     weight: 12.8,
