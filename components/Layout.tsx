@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Home, Search, Heart, User, Bell, PlusCircle, Settings, Calendar, Users, Package, LogOut, X, MapPin, Bone, Activity, Stethoscope } from 'lucide-react';
+import { Home, Search, Heart, User, Bell, PlusCircle, Settings, Calendar, Users, Package, LogOut, X, MapPin, Bone, Activity, Stethoscope, ClipboardList } from 'lucide-react';
 import { AppRole } from '../types';
 
 interface LayoutProps {
@@ -9,12 +9,17 @@ interface LayoutProps {
   setActiveTab: (tab: string) => void;
   role: AppRole;
   onLogout: () => void;
+  showPlusMenu?: boolean;
+  setShowPlusMenu?: (show: boolean) => void;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, role, onLogout }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, role, onLogout, showPlusMenu: externalShowPlusMenu, setShowPlusMenu: externalSetShowPlusMenu }) => {
   const isVet = role === AppRole.VETERINARIAN;
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showPlusMenu, setShowPlusMenu] = useState(false);
+  const [internalShowPlusMenu, setInternalShowPlusMenu] = useState(false);
+  
+  const showPlusMenu = externalShowPlusMenu !== undefined ? externalShowPlusMenu : internalShowPlusMenu;
+  const setShowPlusMenu = externalSetShowPlusMenu || setInternalShowPlusMenu;
 
   return (
     <div className="flex flex-col min-h-screen pb-32 bg-crema dark:bg-darkBg transition-colors">
@@ -96,12 +101,26 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
       {/* Menú Plus Acciones Rápidas */}
       {showPlusMenu && (
         <div className="fixed inset-0 z-[100] bg-secondary/20 backdrop-blur-sm animate-in fade-in duration-300 flex items-center justify-center p-6" onClick={() => setShowPlusMenu(false)}>
-           <div className="bg-white dark:bg-darkCard rounded-5xl p-8 w-full max-w-xs grid grid-cols-2 gap-4 shadow-2xl" onClick={e => e.stopPropagation()}>
-             <PlusAction icon={<Activity />} label="Peso" color="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500" />
-             <PlusAction icon={<Bone />} label="Paseo" color="bg-amber-50 dark:bg-amber-900/20 text-amber-500" />
-             <PlusAction icon={<Calendar />} label="Tarea" color="bg-blue-50 dark:bg-blue-900/20 text-blue-500" />
-             <PlusAction icon={<Stethoscope />} label="Cita" color="bg-rose-50 dark:bg-rose-900/20 text-rose-500" />
-             <button onClick={() => setShowPlusMenu(false)} className="col-span-2 mt-2 py-4 bg-crema dark:bg-slate-700 rounded-3xl font-black text-secondary dark:text-slate-200 uppercase tracking-widest text-[10px]">Cancelar</button>
+           <div className="bg-white dark:bg-darkCard rounded-5xl p-8 w-full max-w-xs grid grid-cols-3 gap-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+             <PlusAction 
+               icon={<ClipboardList />} 
+               label="Misión" 
+               color="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500" 
+               onClick={() => { setShowPlusMenu(false); }} 
+             />
+             <PlusAction 
+               icon={<Calendar />} 
+               label="Cita" 
+               color="bg-blue-50 dark:bg-blue-900/20 text-blue-500" 
+               onClick={() => { setActiveTab('search'); setShowPlusMenu(false); }} 
+             />
+             <PlusAction 
+               icon={<User />} 
+               label="Perfil" 
+               color="bg-rose-50 dark:bg-rose-900/20 text-rose-500" 
+               onClick={() => { setActiveTab('health'); setShowPlusMenu(false); }} 
+             />
+             <button onClick={() => setShowPlusMenu(false)} className="col-span-3 mt-2 py-4 bg-crema dark:bg-slate-700 rounded-3xl font-black text-secondary dark:text-slate-200 uppercase tracking-widest text-[10px]">Cancelar</button>
            </div>
         </div>
       )}
@@ -137,8 +156,8 @@ const PlusButton = ({ onClick }: any) => (
   </div>
 );
 
-const PlusAction = ({ icon, label, color }: any) => (
-  <button className="flex flex-col items-center gap-3 group">
+const PlusAction = ({ icon, label, color, onClick }: any) => (
+  <button onClick={onClick} className="flex flex-col items-center gap-3 group">
     <div className={`w-16 h-16 ${color} rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm`}>
       {React.cloneElement(icon, { className: 'w-7 h-7' })}
     </div>

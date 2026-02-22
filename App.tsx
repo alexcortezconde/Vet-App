@@ -98,7 +98,7 @@ const App: React.FC = () => {
   const [showAI, setShowAI] = useState(true);
   const [pets, setPets] = useState<Pet[]>(initialPets);
   const [selectedPetId, setSelectedPetId] = useState(initialPets[0].id);
-  const [showFABMenu, setShowFABMenu] = useState(false);
+  const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [showAddPetModal, setShowAddPetModal] = useState(false);
   const [showEditPetModal, setShowEditPetModal] = useState(false);
   const [showManagePetsModal, setShowManagePetsModal] = useState(false);
@@ -285,7 +285,7 @@ const App: React.FC = () => {
                   </button>
                 </div>
               </div>
-              <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar px-2 -mx-2">
+              <div className="flex gap-4 overflow-x-auto pb-4 pt-2 no-scrollbar px-2 -mx-2">
                 {pets.map(pet => (
                   <button 
                     key={pet.id}
@@ -375,7 +375,7 @@ const App: React.FC = () => {
                   <div className="w-full flex flex-col items-center justify-center py-10 bg-white/50 dark:bg-darkCard/50 rounded-4xl border-2 border-dashed border-slate-200 dark:border-slate-800">
                     <p className="text-slate-400 text-xs font-bold mb-4">No hay misiones para {currentPet.name}</p>
                     <button 
-                      onClick={() => setShowFABMenu(true)}
+                      onClick={() => setShowPlusMenu(true)}
                       className="bg-primary text-white px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20"
                     >
                       Agregar Misión
@@ -406,7 +406,7 @@ const App: React.FC = () => {
                   icon={<Plus />} 
                   label="Nuevo" 
                   color="bg-slate-100 dark:bg-slate-800 text-slate-400" 
-                  onClick={() => setShowFABMenu(true)} 
+                  onClick={() => setShowPlusMenu(true)} 
                 />
               </div>
             </section>
@@ -451,25 +451,15 @@ const App: React.FC = () => {
   };
 
   return (
-    <Layout role={role} activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout}>
+    <Layout 
+      role={role} 
+      activeTab={activeTab} 
+      setActiveTab={setActiveTab} 
+      onLogout={handleLogout}
+      showPlusMenu={showPlusMenu}
+      setShowPlusMenu={setShowPlusMenu}
+    >
       {renderContent()}
-
-      {/* Floating Action Button */}
-      <div className="fixed bottom-24 right-6 z-50">
-        {showFABMenu && (
-          <div className="absolute bottom-16 right-0 space-y-3 animate-in slide-in-from-bottom-4 fade-in duration-300">
-            <FABMenuItem icon={<Calendar />} label="Cita" onClick={() => { setActiveTab('search'); setShowFABMenu(false); }} />
-            <FABMenuItem icon={<ClipboardList />} label="Mision" onClick={() => setShowFABMenu(false)} />
-            <FABMenuItem icon={<UserIcon />} label="Perfil" onClick={() => { setActiveTab('health'); setShowFABMenu(false); }} />
-          </div>
-        )}
-        <button 
-          onClick={() => setShowFABMenu(!showFABMenu)}
-          className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all ${showFABMenu ? 'bg-secondary rotate-45' : 'bg-primary shadow-primary/40'}`}
-        >
-          <Plus className="w-8 h-8 text-white" />
-        </button>
-      </div>
 
       {/* Notification Toast */}
       {notification && (
