@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { User as UserType } from '../types';
 import { 
-  User, 
+  User as UserIcon, 
   Globe, 
   Bell, 
   Shield, 
@@ -10,10 +11,13 @@ import {
   ChevronRight,
   LogOut,
   Camera,
-  Sparkles
+  Sparkles,
+  X
 } from 'lucide-react';
 
 interface SettingsProps {
+  user: UserType | null;
+  setUser: (user: UserType | null) => void;
   onLogout: () => void;
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
@@ -21,7 +25,28 @@ interface SettingsProps {
   setShowAI: (val: boolean) => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ onLogout, darkMode, setDarkMode, showAI, setShowAI }) => {
+export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, darkMode, setDarkMode, showAI, setShowAI }) => {
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    address: user?.address || ''
+  });
+
+  const handleSaveProfile = () => {
+    if (user) {
+      setUser({
+        ...user,
+        name: editForm.name,
+        email: editForm.email,
+        phone: editForm.phone,
+        address: editForm.address
+      });
+    }
+    setShowEditProfile(false);
+  };
+
   return (
     <div className="space-y-8 pb-10 animate-in fade-in duration-700">
       <div className="px-2">
@@ -33,7 +58,7 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout, darkMode, setDarkM
       <div className="bg-white dark:bg-darkCard p-8 rounded-5xl border border-white dark:border-slate-800 shadow-sm flex items-center gap-6 transition-colors">
         <div className="relative group">
           <img 
-            src="https://images.unsplash.com/photo-1612349317150-e413f6a5b1f8?auto=format&fit=crop&q=80&w=200" 
+            src={user?.photoUrl || "https://images.unsplash.com/photo-1612349317150-e413f6a5b1f8?auto=format&fit=crop&q=80&w=200"} 
             className="w-20 h-20 rounded-4xl object-cover shadow-xl border-4 border-crema dark:border-slate-700" 
             alt="Profile" 
           />
@@ -42,11 +67,65 @@ export const Settings: React.FC<SettingsProps> = ({ onLogout, darkMode, setDarkM
           </button>
         </div>
         <div>
-          <h3 className="text-xl font-black text-secondary dark:text-slate-200 leading-none">Dr. Alejandro</h3>
-          <p className="text-xs text-slate-400 font-bold mt-1">ID: 4920-X82</p>
-          <button className="text-primary text-[10px] font-black uppercase tracking-widest mt-2 hover:underline">Editar Perfil</button>
+          <h3 className="text-xl font-black text-secondary dark:text-slate-200 leading-none">{user?.name || 'Usuario'}</h3>
+          <p className="text-xs text-slate-400 font-bold mt-1">{user?.email}</p>
+          <button 
+            onClick={() => setShowEditProfile(true)}
+            className="text-primary text-[10px] font-black uppercase tracking-widest mt-2 hover:underline"
+          >
+            Editar Perfil
+          </button>
         </div>
       </div>
+
+      {/* Modal Editar Perfil */}
+      {showEditProfile && (
+        <div className="fixed inset-0 z-[200] bg-secondary/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white dark:bg-darkCard w-full max-w-md rounded-t-5xl sm:rounded-5xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10">
+            <div className="p-8 space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-black text-secondary dark:text-slate-100">Editar Perfil</h3>
+                <button onClick={() => setShowEditProfile(false)} className="p-2 bg-crema dark:bg-slate-700 rounded-xl text-slate-400"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nombre Completo</span>
+                  <input 
+                    type="text" 
+                    value={editForm.name}
+                    onChange={e => setEditForm({...editForm, name: e.target.value})}
+                    className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</span>
+                  <input 
+                    type="email" 
+                    value={editForm.email}
+                    onChange={e => setEditForm({...editForm, email: e.target.value})}
+                    className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Teléfono</span>
+                  <input 
+                    type="tel" 
+                    value={editForm.phone}
+                    onChange={e => setEditForm({...editForm, phone: e.target.value})}
+                    className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200" 
+                  />
+                </div>
+              </div>
+              <button 
+                onClick={handleSaveProfile}
+                className="w-full py-5 bg-primary text-white rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-primary/20"
+              >
+                Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Secciones de Ajustes */}
       <div className="space-y-4">

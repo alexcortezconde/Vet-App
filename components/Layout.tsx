@@ -51,7 +51,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
       {/* Drawer lateral de Notificaciones */}
       <div className={`fixed inset-0 z-[100] transition-opacity duration-300 ${showNotifications ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
         <div className="absolute inset-0 bg-secondary/30 backdrop-blur-sm" onClick={() => setShowNotifications(false)}></div>
-        <div className={`absolute right-0 top-0 bottom-0 w-80 bg-white dark:bg-darkCard shadow-2xl transition-transform duration-500 ease-out transform ${showNotifications ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className={`absolute right-0 top-0 bottom-0 w-56 bg-white dark:bg-darkCard shadow-2xl transition-transform duration-500 ease-out transform ${showNotifications ? 'translate-x-0' : 'translate-x-full'}`}>
            <div className="p-8 space-y-8">
              <div className="flex justify-between items-center">
                <h4 className="font-black text-secondary dark:text-slate-100 text-lg uppercase tracking-widest">Notificaciones</h4>

@@ -4,6 +4,16 @@ export enum AppRole {
   VETERINARIAN = 'VETERINARIAN'
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  imageUrl?: string;
+  role: AppRole;
+}
+
 export interface Appointment {
   id: string;
   petName: string;

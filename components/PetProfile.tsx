@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Pet } from '../types';
+import { Pet, Appointment } from '../types';
 import { 
   FileText, 
   Plus, 
@@ -19,16 +19,32 @@ import {
   FileSearch,
   X,
   FileCheck,
-  Trash2
+  Trash2,
+  MapPin,
+  CheckCircle2
 } from 'lucide-react';
 
 interface PetProfileProps {
   pet: Pet;
-  activeTab?: 'info' | 'medical' | 'docs';
-  setActiveTab?: (tab: 'info' | 'medical' | 'docs') => void;
+  activeTab?: 'info' | 'medical' | 'docs' | 'appointments';
+  setActiveTab?: (tab: 'info' | 'medical' | 'docs' | 'appointments') => void;
+  appointments?: Appointment[];
+  pets?: Pet[];
+  onSwitchPet?: (id: string) => void;
+  onAddAppointment?: () => void;
+  onEditPet?: (pet: Pet) => void;
 }
 
-export const PetProfile: React.FC<PetProfileProps> = ({ pet, activeTab = 'info', setActiveTab }) => {
+export const PetProfile: React.FC<PetProfileProps> = ({ 
+  pet, 
+  activeTab = 'info', 
+  setActiveTab, 
+  appointments = [],
+  pets = [],
+  onSwitchPet,
+  onAddAppointment,
+  onEditPet
+}) => {
   const [showUpload, setShowUpload] = useState(false);
   const [showRecetaDetail, setShowRecetaDetail] = useState(false);
   const [showAddVaccine, setShowAddVaccine] = useState(false);
@@ -54,8 +70,14 @@ export const PetProfile: React.FC<PetProfileProps> = ({ pet, activeTab = 'info',
               </button>
             </div>
           </div>
-          <div className="mt-5 text-center">
+          <div className="mt-5 text-center relative">
             <h2 className="text-4xl font-black text-secondary dark:text-slate-100 tracking-tighter">¡Hola, {pet.name}!</h2>
+            <button 
+              onClick={() => onEditPet?.(pet)}
+              className="absolute -right-8 top-1 p-2 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-crema dark:border-slate-700 text-primary hover:scale-110 transition-all"
+            >
+              <FileText className="w-4 h-4" />
+            </button>
             <div className="flex items-center justify-center gap-3 mt-2">
               <span className="bg-secondary dark:bg-slate-700 text-white px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">{pet.breed}</span>
               <span className="bg-primary/10 text-primary border border-primary/20 px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">{pet.age} años</span>
@@ -65,9 +87,24 @@ export const PetProfile: React.FC<PetProfileProps> = ({ pet, activeTab = 'info',
       </div>
 
       <div className="px-1 space-y-6 -mt-4 relative z-10">
+        {/* Pet Switcher in Profile */}
+        <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar px-2">
+          {pets.map(p => (
+            <button 
+              key={p.id}
+              onClick={() => onSwitchPet?.(p.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-2xl border-2 transition-all shrink-0 ${p.id === pet.id ? 'border-primary bg-primary/5 text-primary' : 'border-white dark:border-slate-800 bg-white dark:bg-darkCard text-slate-400'}`}
+            >
+              <img src={p.imageUrl} className="w-6 h-6 rounded-lg object-cover" alt={p.name} />
+              <span className="text-[10px] font-black uppercase tracking-widest">{p.name}</span>
+            </button>
+          ))}
+        </div>
+
         <div className="flex bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl p-2 rounded-4xl border border-white/50 dark:border-slate-700 shadow-xl transition-colors">
           <TabButton active={currentTab === 'info'} onClick={() => setActiveTab?.('info')} label="DATOS" />
           <TabButton active={currentTab === 'medical'} onClick={() => setActiveTab?.('medical')} label="MÉDICO" />
+          <TabButton active={currentTab === 'appointments'} onClick={() => setActiveTab?.('appointments')} label="CITAS" />
           <TabButton active={currentTab === 'docs'} onClick={() => setActiveTab?.('docs')} label="RECETAS" />
         </div>
 
@@ -85,13 +122,13 @@ export const PetProfile: React.FC<PetProfileProps> = ({ pet, activeTab = 'info',
               <div className="space-y-2">
                 <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Alergias Detectadas</span>
                 <div className="flex flex-wrap gap-2">
-                  {pet.allergies.map(a => <span key={a} className="bg-white dark:bg-slate-800 px-3 py-1 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40 shadow-sm">{a}</span>)}
+                  {pet.allergies.length > 0 ? pet.allergies.map(a => <span key={a} className="bg-white dark:bg-slate-800 px-3 py-1 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40 shadow-sm">{a}</span>) : <span className="text-xs text-slate-400">Ninguna</span>}
                 </div>
               </div>
               <div className="space-y-2">
                 <span className="text-[10px] font-black text-secondary/60 dark:text-slate-500 uppercase tracking-widest">Condiciones Crónicas</span>
                 <div className="flex flex-wrap gap-2">
-                  {pet.chronicConditions.map(c => <span key={c} className="bg-secondary/5 dark:bg-slate-700 px-3 py-1 rounded-xl text-xs font-bold text-secondary dark:text-slate-300">{c}</span>)}
+                  {pet.chronicConditions.length > 0 ? pet.chronicConditions.map(c => <span key={c} className="bg-secondary/5 dark:bg-slate-700 px-3 py-1 rounded-xl text-xs font-bold text-secondary dark:text-slate-300">{c}</span>) : <span className="text-xs text-slate-400">Ninguna</span>}
                 </div>
               </div>
             </div>
@@ -102,7 +139,7 @@ export const PetProfile: React.FC<PetProfileProps> = ({ pet, activeTab = 'info',
           <div className="space-y-6 animate-in slide-in-from-bottom-8 duration-500">
              <SectionTitle title="Seguimiento de Vacunas" icon={<ShieldCheck className="w-5 h-5" />} color="text-emerald-500" />
              <div className="space-y-3">
-               {pet.vaccines.map((v, i) => <MedicalItem key={i} title={v.name} last={v.date} next={v.nextDue} icon={<Syringe />} />)}
+               {pet.vaccines.length > 0 ? pet.vaccines.map((v, i) => <MedicalItem key={i} title={v.name} last={v.date} next={v.nextDue} icon={<Syringe />} />) : <div className="text-center py-10 text-slate-400 text-xs font-bold">No hay vacunas registradas</div>}
                <button 
                  onClick={() => setShowAddVaccine(true)}
                  className="w-full py-4 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-4xl text-slate-400 dark:text-slate-600 font-black text-xs uppercase tracking-widest hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2"
@@ -113,11 +150,47 @@ export const PetProfile: React.FC<PetProfileProps> = ({ pet, activeTab = 'info',
           </div>
         )}
 
+        {currentTab === 'appointments' && (
+          <div className="space-y-6 animate-in slide-in-from-bottom-8 duration-500">
+            <SectionTitle title="Mis Citas" icon={<Calendar className="w-5 h-5" />} color="text-indigo-500" />
+            <div className="space-y-4">
+              {appointments.filter(a => a.petName === pet.name).length > 0 ? (
+                appointments.filter(a => a.petName === pet.name).map(app => (
+                  <div key={app.id} className="bg-white dark:bg-darkCard p-6 rounded-4xl border border-white dark:border-slate-800 shadow-sm flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-2xl flex items-center justify-center">
+                        <Calendar className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-secondary dark:text-slate-200 text-sm">{app.reason}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{app.date} • {app.time}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-black uppercase text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-xl">Confirmada</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-10 bg-white dark:bg-darkCard rounded-4xl border-2 border-dashed border-slate-100 dark:border-slate-800">
+                  <p className="text-slate-400 text-xs font-bold">No tienes citas agendadas para {pet.name}</p>
+                </div>
+              )}
+              <button 
+                onClick={onAddAppointment}
+                className="w-full py-4 bg-indigo-500 text-white rounded-4xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" /> Agendar Nueva Cita
+              </button>
+            </div>
+          </div>
+        )}
+
         {currentTab === 'docs' && (
           <div className="space-y-6 animate-in slide-in-from-bottom-8 duration-500">
             <SectionTitle title="Historial de Documentos" icon={<FileSearch className="w-5 h-5" />} />
             <div className="space-y-3">
-              {pet.documents.map(doc => (
+              {pet.documents.length > 0 ? pet.documents.map(doc => (
                 <div 
                   key={doc.id} 
                   className="bg-white dark:bg-darkCard p-6 rounded-4xl border border-white dark:border-slate-800 shadow-sm hover:shadow-lg transition-all flex items-center justify-between group"
@@ -138,7 +211,7 @@ export const PetProfile: React.FC<PetProfileProps> = ({ pet, activeTab = 'info',
                     </button>
                   </div>
                 </div>
-              ))}
+              )) : <div className="text-center py-10 text-slate-400 text-xs font-bold">No hay documentos registrados</div>}
             </div>
           </div>
         )}
