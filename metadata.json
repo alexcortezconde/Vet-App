@@ -1,5 +1,5 @@
 {
-  "name": "VetLink - Health & Care",
+  "name": "Vet-App",
   "description": "A comprehensive veterinary platform connecting pet owners with specialized doctors, featuring AI-driven health recommendations and a community social feed.",
   "requestFramePermissions": [
     "camera",
