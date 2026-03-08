@@ -12,7 +12,8 @@ import {
   LogOut,
   Camera,
   Sparkles,
-  X
+  X,
+  ChevronLeft
 } from 'lucide-react';
 
 interface SettingsProps {
@@ -23,9 +24,10 @@ interface SettingsProps {
   setDarkMode: (val: boolean) => void;
   showAI: boolean;
   setShowAI: (val: boolean) => void;
+  onBack?: () => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, darkMode, setDarkMode, showAI, setShowAI }) => {
+export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, darkMode, setDarkMode, showAI, setShowAI, onBack }) => {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editForm, setEditForm] = useState({
     name: user?.name || '',
@@ -49,9 +51,20 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
 
   return (
     <div className="space-y-8 pb-10 animate-in fade-in duration-700">
-      <div className="px-2">
-        <h2 className="text-2xl font-black text-secondary dark:text-slate-100">Ajustes</h2>
-        <p className="text-xs text-slate-400 font-medium">Configuración de tu cuenta y App</p>
+      <div className="px-2 flex items-center gap-4">
+        {onBack && (
+          <button 
+            onClick={onBack}
+            className="flex items-center gap-2 p-3 bg-white dark:bg-darkCard rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 text-slate-400 hover:text-primary transition-colors"
+          >
+            <ChevronLeft className="w-6 h-6" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Regresar</span>
+          </button>
+        )}
+        <div>
+          <h2 className="text-2xl font-black text-secondary dark:text-slate-100">Ajustes</h2>
+          <p className="text-xs text-slate-400 font-medium">Configuración de tu cuenta y App</p>
+        </div>
       </div>
 
       {/* Perfil Rápido */}
@@ -158,7 +171,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
           <SettingItem icon={<HelpCircle className="text-slate-400" />} label="Centro de Ayuda" />
           <SettingItem 
             icon={<LogOut className="text-rose-500" />} 
-            label="Cerrar Sesión" 
+            label="Salir" 
             noChevron 
             color="text-rose-500"
             onClick={onLogout}
@@ -167,7 +180,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
       </div>
 
       <div className="text-center pt-4">
-        <p className="text-[10px] text-slate-300 dark:text-slate-600 font-black uppercase tracking-[0.3em]">PetCare v1.0.6 - 2024</p>
+        <p className="text-[10px] text-slate-300 dark:text-slate-600 font-black uppercase tracking-[0.3em]">Pawell v1.0.6 - 2024</p>
       </div>
     </div>
   );

@@ -49,9 +49,10 @@ const mockVets: Vet[] = [
 
 interface VetSearchProps {
   onAddAppointment: (app: Appointment) => void;
+  onOpenEmergency?: () => void;
 }
 
-export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment }) => {
+export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment, onOpenEmergency }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Todos');
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
@@ -87,8 +88,9 @@ export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment }) => {
   }, [viewMode]);
 
   const filteredVets = mockVets.filter(vet => {
-    const matchesSearch = vet.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          vet.specialties.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = vet.name.toLowerCase().includes(searchLower) || 
+                          vet.specialties.some(s => s.toLowerCase().includes(searchLower));
     if (activeFilter === '🔥 Popular') return matchesSearch && vet.rating >= 4.8;
     if (activeFilter === '🚑 Emergencia') return matchesSearch && vet.specialties.includes('Urgencias 24h');
     if (activeFilter === '📍 Cerca') return matchesSearch; // Placeholder for distance logic
@@ -117,12 +119,20 @@ export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment }) => {
     <div className="space-y-8 pb-10 animate-in fade-in duration-700">
       <div className="flex justify-between items-center px-2">
         <h2 className="text-2xl font-black text-secondary dark:text-slate-100">Encontrar Ayuda</h2>
-        <button 
-          onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
-          className="flex items-center gap-2 bg-white dark:bg-darkCard px-5 py-2 rounded-2xl shadow-sm border border-white dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-primary hover:shadow-md transition-all"
-        >
-          {viewMode === 'list' ? <><MapIcon className="w-4 h-4" /> Mapa</> : <><List className="w-4 h-4" /> Lista</>}
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={onOpenEmergency}
+            className="flex items-center gap-2 bg-rose-50 dark:bg-rose-900/20 px-4 py-2 rounded-2xl shadow-sm border border-rose-100 dark:border-rose-800 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-500 hover:text-white transition-all"
+          >
+            <Phone className="w-4 h-4" /> Urgencias
+          </button>
+          <button 
+            onClick={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
+            className="flex items-center gap-2 bg-white dark:bg-darkCard px-4 py-2 rounded-2xl shadow-sm border border-white dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-primary hover:shadow-md transition-all"
+          >
+            {viewMode === 'list' ? <><MapIcon className="w-4 h-4" /> Mapa</> : <><List className="w-4 h-4" /> Lista</>}
+          </button>
+        </div>
       </div>
 
       <div className="relative group">
@@ -285,13 +295,26 @@ export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment }) => {
               <div className="space-y-2">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Horario Disponible</span>
                 <div className="grid grid-cols-3 gap-2">
-                  {['09:00', '10:30', '12:00', '15:30', '17:00'].map(h => (
+                  {[
+                    { time: '09:00', available: false }, 
+                    { time: '10:30', available: true }, 
+                    { time: '12:00', available: true }, 
+                    { time: '15:30', available: false }, 
+                    { time: '17:00', available: true }
+                  ].map(slot => (
                     <button 
-                      key={h} 
-                      onClick={() => setSelectedTime(h)}
-                      className={`py-3 rounded-2xl text-[11px] font-black transition-all shadow-sm ${selectedTime === h ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800 text-slate-300'}`}
+                      key={slot.time} 
+                      onClick={() => slot.available && setSelectedTime(slot.time)}
+                      disabled={!slot.available}
+                      className={`py-3 rounded-2xl text-[11px] font-black transition-all shadow-sm ${
+                        !slot.available 
+                          ? 'bg-slate-100 dark:bg-slate-800/30 text-slate-300 dark:text-slate-600 cursor-not-allowed border border-transparent opacity-50 line-through' 
+                          : selectedTime === slot.time 
+                            ? 'bg-primary text-white border-primary' 
+                            : 'bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-primary/30'
+                      }`}
                     >
-                      {h}
+                      {slot.time}
                     </button>
                   ))}
                 </div>

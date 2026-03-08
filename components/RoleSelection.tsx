@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { AppRole } from '../types';
-import { User, Stethoscope, Heart, ShieldCheck } from 'lucide-react';
+import { User, Stethoscope, Heart, ShieldCheck, PawPrint } from 'lucide-react';
 
 interface RoleSelectionProps {
   onSelect: (role: AppRole) => void;
@@ -12,10 +12,10 @@ export const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelect }) => {
     <div className="min-h-screen bg-crema flex flex-col items-center justify-center p-8 space-y-12">
       <div className="text-center space-y-4">
         <div className="w-20 h-20 bg-primary rounded-3xl mx-auto flex items-center justify-center shadow-2xl rotate-6 shadow-primary/20">
-          <Heart className="w-10 h-10 text-white fill-white" />
+          <PawPrint className="w-10 h-10 text-white" />
         </div>
         <div>
-          <h1 className="text-4xl font-black text-secondary tracking-tighter">PetCare</h1>
+          <h1 className="text-4xl font-black text-secondary tracking-tighter">Pawell</h1>
           <p className="text-slate-400 font-bold uppercase tracking-widest text-[11px] mt-1">Plataforma Integral de Salud</p>
         </div>
       </div>

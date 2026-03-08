@@ -11,9 +11,10 @@ interface LayoutProps {
   onLogout: () => void;
   showPlusMenu?: boolean;
   setShowPlusMenu?: (show: boolean) => void;
+  toggleRole?: () => void;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, role, onLogout, showPlusMenu: externalShowPlusMenu, setShowPlusMenu: externalSetShowPlusMenu }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, role, onLogout, showPlusMenu: externalShowPlusMenu, setShowPlusMenu: externalSetShowPlusMenu, toggleRole }) => {
   const isVet = role === AppRole.VETERINARIAN;
   const [showNotifications, setShowNotifications] = useState(false);
   const [internalShowPlusMenu, setInternalShowPlusMenu] = useState(false);
@@ -27,16 +28,24 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
       <header className="sticky top-0 z-[60] bg-secondary dark:bg-slate-900 px-6 py-4 flex items-center justify-between rounded-b-5xl shadow-lg">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/10 rotate-3">
-            <Heart className="w-6 h-6 text-white fill-white" />
+            <Bone className="w-6 h-6 text-white fill-white" />
           </div>
           <div>
-            <h1 className="text-xl font-extrabold text-white tracking-tighter leading-none">petcare</h1>
+            <h1 className="text-xl font-extrabold text-white tracking-tighter leading-none">Pawell</h1>
             <span className="text-[10px] text-white/50 font-black uppercase tracking-widest">
               {isVet ? 'Vet Pro Portal' : 'Care Hub'}
             </span>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {toggleRole && (
+            <button 
+              onClick={toggleRole}
+              className="text-[10px] font-bold bg-white/10 text-white px-2 py-1 rounded-lg mr-2"
+            >
+              Dev: {isVet ? 'Vet' : 'Owner'}
+            </button>
+          )}
           <button 
             onClick={() => setShowNotifications(true)}
             className="p-2.5 bg-white/5 rounded-2xl text-white hover:bg-white/10 transition-all relative"

@@ -23,8 +23,8 @@ import {
 const initialPets: Pet[] = [
   {
     id: 'dog-1',
-    name: 'Max',
-    breed: 'Boxer',
+    name: 'Odi',
+    breed: 'Cocker Spaniel',
     age: 9,
     sex: 'Male',
     weight: 12.8,
@@ -238,6 +238,7 @@ const App: React.FC = () => {
         setDarkMode={setDarkMode} 
         showAI={showAI} 
         setShowAI={setShowAI}
+        onBack={() => setActiveTab('home')}
       />
     );
     if (activeTab === 'historial') return <MedicalHistoryView onBack={() => setActiveTab('home')} />;
@@ -430,7 +431,7 @@ const App: React.FC = () => {
             )}
           </div>
         );
-      case 'search': return <VetSearch onAddAppointment={addAppointment} />;
+      case 'search': return <VetSearch onAddAppointment={addAppointment} onOpenEmergency={() => setActiveTab('urgencia')} />;
       case 'social': return <SocialFeed />;
       case 'health':
         const selectedPet = pets.find(p => p.id === selectedPetId) || pets[0];
@@ -443,11 +444,20 @@ const App: React.FC = () => {
             onSwitchPet={(id) => setSelectedPetId(id)}
             onAddAppointment={() => setActiveTab('search')}
             onEditPet={(p) => { setPetToEdit(p); setShowEditPetModal(true); }}
+            onUpdatePet={(updatedPet) => {
+              const updatedPets = pets.map(p => p.id === updatedPet.id ? updatedPet : p);
+              setPets(updatedPets);
+            }}
+            onOpenDiet={() => setActiveTab('dieta')}
             pets={pets}
           />
         );
       default: return <HealthDashboard pet={currentPet} />;
     }
+  };
+
+  const handleToggleRole = () => {
+    setRole(role === AppRole.OWNER ? AppRole.VETERINARIAN : AppRole.OWNER);
   };
 
   return (
@@ -458,6 +468,7 @@ const App: React.FC = () => {
       onLogout={handleLogout}
       showPlusMenu={showPlusMenu}
       setShowPlusMenu={setShowPlusMenu}
+      toggleRole={handleToggleRole}
     >
       {renderContent()}
 
@@ -482,10 +493,13 @@ const App: React.FC = () => {
             <h3 className="text-2xl font-black text-secondary dark:text-white mb-2">{selectedMission.title}</h3>
             <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-8">{selectedMission.message}</p>
             <button 
-              onClick={() => setSelectedMission(null)}
-              className="w-full bg-secondary dark:bg-slate-800 text-white font-black py-4 rounded-2xl shadow-lg hover:scale-[1.02] active:scale-95 transition-all"
+              onClick={() => {
+                setSelectedMission(null);
+                setActiveTab('search');
+              }}
+              className="w-full bg-primary text-white font-black py-4 rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
             >
-              Cerrar
+              Agendar Cita
             </button>
           </div>
         </div>
@@ -680,23 +694,106 @@ const DietCard = ({ time, portion, type }: any) => (
   </div>
 );
 
-const EmergencyView = ({ onBack }: any) => (
-  <div className="space-y-6 pb-10 animate-in fade-in duration-500">
-    <button onClick={onBack} className="flex items-center gap-2 text-primary font-black uppercase text-[10px] tracking-widest mb-4">
-      <ChevronRight className="w-4 h-4 rotate-180" /> Volver
-    </button>
-    <div className="bg-rose-500 p-8 rounded-5xl text-white shadow-lg">
-       <h2 className="text-3xl font-black">Emergencias 24h</h2>
-       <p className="text-white/60 text-xs font-medium mt-1">Contacto inmediato con clínicas cercanas</p>
-    </div>
-    <div className="space-y-4">
-      <EmergencyItem name="Hospital Vet Sur" address="Calle Falsa 123" phone="+54 11 4930-XXXX" />
-      <EmergencyItem name="Clínica San Roque" address="Av. Libertador 4500" phone="+54 11 2284-XXXX" />
-    </div>
-  </div>
-);
+const EmergencyView = ({ onBack }: any) => {
+  const [contacts, setContacts] = useState([
+    { id: 1, name: "Hospital Vet Sur", address: "Calle Falsa 123", phone: "+54 11 4930-XXXX" },
+    { id: 2, name: "Clínica San Roque", address: "Av. Libertador 4500", phone: "+54 11 2284-XXXX" }
+  ]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [newName, setNewName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newAddress, setNewAddress] = useState('');
 
-const EmergencyItem = ({ name, address, phone }: any) => (
+  const handleSave = () => {
+    if (!newName || !newPhone) return;
+    if (isEditing && editId) {
+      setContacts(contacts.map(c => c.id === editId ? { ...c, name: newName, phone: newPhone, address: newAddress || 'Sin dirección' } : c));
+    } else {
+      setContacts([...contacts, { id: Date.now(), name: newName, phone: newPhone, address: newAddress || 'Sin dirección' }]);
+    }
+    setShowAdd(false);
+    setIsEditing(false);
+    setEditId(null);
+    setNewName('');
+    setNewPhone('');
+    setNewAddress('');
+  };
+
+  const handleEdit = (c: any) => {
+    setNewName(c.name);
+    setNewPhone(c.phone);
+    setNewAddress(c.address);
+    setEditId(c.id);
+    setIsEditing(true);
+    setShowAdd(true);
+  };
+
+  const handleDelete = (id: number) => {
+    setContacts(contacts.filter(c => c.id !== id));
+  };
+
+  return (
+    <div className="space-y-6 pb-10 animate-in fade-in duration-500">
+      <button onClick={onBack} className="flex items-center gap-2 text-primary font-black uppercase text-[10px] tracking-widest mb-4">
+        <ChevronRight className="w-4 h-4 rotate-180" /> Volver
+      </button>
+      <div className="bg-rose-500 p-8 rounded-5xl text-white shadow-lg relative">
+         <h2 className="text-3xl font-black">Emergencias 24h</h2>
+         <p className="text-white/60 text-xs font-medium mt-1">Contacto inmediato con clínicas cercanas</p>
+         <button 
+           onClick={() => { setShowAdd(true); setIsEditing(false); setNewName(''); setNewPhone(''); setNewAddress(''); }}
+           className="absolute top-8 right-8 bg-white text-rose-500 p-3 rounded-2xl shadow-lg hover:scale-105 transition-transform"
+         >
+           <Plus className="w-5 h-5" />
+         </button>
+      </div>
+      <div className="space-y-4">
+        {contacts.map(c => (
+          <EmergencyItem 
+            key={c.id} 
+            name={c.name} 
+            address={c.address} 
+            phone={c.phone} 
+            onEdit={() => handleEdit(c)}
+            onDelete={() => handleDelete(c.id)}
+          />
+        ))}
+      </div>
+
+      {showAdd && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-secondary/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-darkCard w-full max-w-sm p-8 rounded-5xl shadow-2xl border border-white dark:border-slate-800 relative">
+            <button onClick={() => setShowAdd(false)} className="absolute top-6 right-6 text-slate-300 hover:text-secondary transition-colors">
+              <X className="w-6 h-6" />
+            </button>
+            <h3 className="text-2xl font-black text-secondary dark:text-white mb-6">{isEditing ? 'Editar Contacto' : 'Nuevo Contacto'}</h3>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nombre Clínica</label>
+                <input value={newName} onChange={e => setNewName(e.target.value)} className="w-full p-4 bg-crema dark:bg-slate-800 rounded-2xl border-none font-bold text-secondary dark:text-white" placeholder="Ej. Hospital Vet" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Teléfono</label>
+                <input value={newPhone} onChange={e => setNewPhone(e.target.value)} className="w-full p-4 bg-crema dark:bg-slate-800 rounded-2xl border-none font-bold text-secondary dark:text-white" placeholder="Ej. +54 11..." />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Dirección</label>
+                <input value={newAddress} onChange={e => setNewAddress(e.target.value)} className="w-full p-4 bg-crema dark:bg-slate-800 rounded-2xl border-none font-bold text-secondary dark:text-white" placeholder="Ej. Calle 123" />
+              </div>
+              <button onClick={handleSave} className="w-full bg-rose-500 text-white font-black py-4 rounded-2xl shadow-lg shadow-rose-500/20 hover:scale-[1.02] active:scale-95 transition-all mt-4">
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const EmergencyItem = ({ name, address, phone, onEdit, onDelete }: any) => (
   <div className="bg-white dark:bg-darkCard p-6 rounded-4xl border border-white dark:border-slate-800 shadow-sm flex justify-between items-center group">
     <div className="flex-1">
       <h4 className="font-black text-secondary dark:text-slate-200 text-base">{name}</h4>
@@ -704,9 +801,17 @@ const EmergencyItem = ({ name, address, phone }: any) => (
         <MapPin className="w-3 h-3" /> {address}
       </div>
     </div>
-    <a href={`tel:${phone}`} className="p-4 bg-rose-50 dark:bg-rose-900/40 text-rose-500 rounded-3xl hover:bg-rose-500 hover:text-white transition-all shadow-sm">
-      <Phone className="w-6 h-6" />
-    </a>
+    <div className="flex items-center gap-2">
+      <button onClick={onEdit} className="p-3 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
+        <Settings2 className="w-5 h-5" />
+      </button>
+      <button onClick={onDelete} className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-2xl hover:bg-rose-500 hover:text-white transition-all">
+        <Trash2 className="w-5 h-5" />
+      </button>
+      <a href={`tel:${phone}`} className="p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-2xl hover:bg-emerald-500 hover:text-white transition-all shadow-sm">
+        <Phone className="w-5 h-5" />
+      </a>
+    </div>
   </div>
 );
 

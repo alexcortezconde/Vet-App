@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Shield, Mail, Lock, User as UserIcon, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Shield, Mail, Lock, User as UserIcon, ArrowRight, CheckCircle2, PawPrint } from 'lucide-react';
 import { AppRole } from '../types';
 
 interface AuthProps {
@@ -18,10 +18,11 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // Simulate login
-    if (email === 'testmail@mail.com' && password === 'testpassword') {
-      onLogin(email, AppRole.OWNER); // Default for test
+    if (email === 'user@mail.com') {
+      onLogin(email, AppRole.OWNER);
+    } else if (email === 'doctor@mail.com') {
+      onLogin(email, AppRole.VETERINARIAN);
     } else {
-      // For any other login, just let them in for demo purposes
       onLogin(email, selectedRole);
     }
   };
@@ -37,10 +38,10 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="w-20 h-20 bg-primary rounded-3xl flex items-center justify-center shadow-2xl shadow-primary/30 rotate-3">
-            <Shield className="w-10 h-10 text-white" />
+            <PawPrint className="w-10 h-10 text-white" />
           </div>
           <div>
-            <h1 className="text-4xl font-black text-secondary dark:text-white tracking-tight">PetCare</h1>
+            <h1 className="text-4xl font-black text-secondary dark:text-white tracking-tight">Pawell</h1>
             <p className="text-slate-400 font-medium text-sm mt-1">Tu mascota en las mejores manos</p>
           </div>
         </div>

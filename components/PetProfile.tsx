@@ -21,7 +21,8 @@ import {
   FileCheck,
   Trash2,
   MapPin,
-  CheckCircle2
+  CheckCircle2,
+  ChevronLeft
 } from 'lucide-react';
 
 interface PetProfileProps {
@@ -33,6 +34,8 @@ interface PetProfileProps {
   onSwitchPet?: (id: string) => void;
   onAddAppointment?: () => void;
   onEditPet?: (pet: Pet) => void;
+  onUpdatePet?: (pet: Pet) => void;
+  onOpenDiet?: () => void;
 }
 
 export const PetProfile: React.FC<PetProfileProps> = ({ 
@@ -43,11 +46,33 @@ export const PetProfile: React.FC<PetProfileProps> = ({
   pets = [],
   onSwitchPet,
   onAddAppointment,
-  onEditPet
+  onEditPet,
+  onUpdatePet,
+  onOpenDiet
 }) => {
   const [showUpload, setShowUpload] = useState(false);
   const [showRecetaDetail, setShowRecetaDetail] = useState(false);
   const [showAddVaccine, setShowAddVaccine] = useState(false);
+  const [newVaccineName, setNewVaccineName] = useState('');
+  const [newVaccineDate, setNewVaccineDate] = useState('15/05/2024');
+  const [newVaccineNextDue, setNewVaccineNextDue] = useState('15/05/2025');
+  const [showDateCalendar, setShowDateCalendar] = useState(false);
+  const [showNextDueCalendar, setShowNextDueCalendar] = useState(false);
+
+  const handleAddVaccine = () => {
+    if (newVaccineName.trim() === '') return;
+    const newVaccine = {
+      name: newVaccineName,
+      date: newVaccineDate,
+      nextDue: newVaccineNextDue
+    };
+    onUpdatePet?.({
+      ...pet,
+      vaccines: [...pet.vaccines, newVaccine]
+    });
+    setShowAddVaccine(false);
+    setNewVaccineName('');
+  };
 
   const currentTab = activeTab;
 
@@ -147,6 +172,27 @@ export const PetProfile: React.FC<PetProfileProps> = ({
                  <Plus className="w-4 h-4" /> Añadir Vacuna
                </button>
              </div>
+
+             <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+               <SectionTitle title="Plan de Dieta" icon={<Layers className="w-5 h-5" />} color="text-amber-500" />
+               <div className="mt-4">
+                 <button 
+                   onClick={onOpenDiet}
+                   className="w-full bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 p-6 rounded-4xl flex items-center justify-between group hover:shadow-md transition-all"
+                 >
+                   <div className="flex items-center gap-4">
+                     <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center text-amber-500">
+                       <Layers className="w-6 h-6" />
+                     </div>
+                     <div className="text-left">
+                       <h4 className="font-black text-secondary dark:text-slate-200">Ver Plan Nutricional</h4>
+                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Recomendaciones y porciones</p>
+                     </div>
+                   </div>
+                   <ChevronRight className="w-5 h-5 text-amber-500 group-hover:translate-x-1 transition-transform" />
+                 </button>
+               </div>
+             </div>
           </div>
         )}
 
@@ -226,23 +272,87 @@ export const PetProfile: React.FC<PetProfileProps> = ({
                     <h3 className="text-xl font-black text-secondary dark:text-slate-100">Nueva Vacuna</h3>
                     <button onClick={() => setShowAddVaccine(false)} className="p-2 bg-crema dark:bg-slate-700 rounded-xl text-slate-400"><X /></button>
                  </div>
-                 <div className="space-y-4">
+                   <div className="space-y-4">
                    <div className="space-y-2">
                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nombre de Vacuna</span>
-                     <input type="text" placeholder="Ej. Moquillo" className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                     <input 
+                       type="text" 
+                       placeholder="Ej. Moquillo" 
+                       value={newVaccineName}
+                       onChange={(e) => setNewVaccineName(e.target.value)}
+                       className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" 
+                     />
                    </div>
                    <div className="grid grid-cols-2 gap-4">
-                     <div className="space-y-2">
+                     <div className="space-y-2 relative">
                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Aplicación</span>
-                       <input type="date" className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200" />
+                       <button 
+                         onClick={() => { setShowDateCalendar(!showDateCalendar); setShowNextDueCalendar(false); }}
+                         className="w-full flex items-center gap-3 p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200 text-sm"
+                       >
+                         <Calendar className="w-4 h-4 text-primary" />
+                         {newVaccineDate}
+                       </button>
+                       {showDateCalendar && (
+                         <div className="absolute top-20 left-0 right-0 z-[210] bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800 p-6 rounded-4xl shadow-2xl animate-in zoom-in-95">
+                           <div className="flex justify-between items-center mb-4 px-1">
+                              <span className="font-black text-secondary dark:text-slate-100 text-sm">Mayo 2024</span>
+                              <div className="flex gap-2">
+                                <button className="p-1.5 bg-crema dark:bg-slate-700 rounded-lg text-slate-400"><ChevronLeft className="w-4 h-4"/></button>
+                                <button className="p-1.5 bg-crema dark:bg-slate-700 rounded-lg text-slate-400"><ChevronLeft className="w-4 h-4 rotate-180"/></button>
+                              </div>
+                           </div>
+                           <div className="grid grid-cols-7 gap-1 text-center">
+                              {['D','L','M','M','J','V','S'].map(d => <span key={d} className="text-[9px] font-black text-slate-300 uppercase">{d}</span>)}
+                              {Array.from({length: 31}, (_, i) => i+1).map(day => (
+                                <button 
+                                  key={day} 
+                                  onClick={() => { setNewVaccineDate(`${day.toString().padStart(2, '0')}/05/2024`); setShowDateCalendar(false); }}
+                                  className={`aspect-square rounded-xl flex items-center justify-center text-xs font-bold transition-all ${day === 15 ? 'bg-primary text-white shadow-lg' : 'text-secondary dark:text-slate-400 hover:bg-crema dark:hover:bg-slate-700'}`}
+                                >
+                                  {day}
+                                </button>
+                              ))}
+                           </div>
+                         </div>
+                       )}
                      </div>
-                     <div className="space-y-2">
+                     <div className="space-y-2 relative">
                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Próxima Dosis</span>
-                       <input type="date" className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200" />
+                       <button 
+                         onClick={() => { setShowNextDueCalendar(!showNextDueCalendar); setShowDateCalendar(false); }}
+                         className="w-full flex items-center gap-3 p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200 text-sm"
+                       >
+                         <Calendar className="w-4 h-4 text-primary" />
+                         {newVaccineNextDue}
+                       </button>
+                       {showNextDueCalendar && (
+                         <div className="absolute top-20 left-0 right-0 z-[210] bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800 p-6 rounded-4xl shadow-2xl animate-in zoom-in-95">
+                           <div className="flex justify-between items-center mb-4 px-1">
+                              <span className="font-black text-secondary dark:text-slate-100 text-sm">Mayo 2025</span>
+                              <div className="flex gap-2">
+                                <button className="p-1.5 bg-crema dark:bg-slate-700 rounded-lg text-slate-400"><ChevronLeft className="w-4 h-4"/></button>
+                                <button className="p-1.5 bg-crema dark:bg-slate-700 rounded-lg text-slate-400"><ChevronLeft className="w-4 h-4 rotate-180"/></button>
+                              </div>
+                           </div>
+                           <div className="grid grid-cols-7 gap-1 text-center">
+                              {['D','L','M','M','J','V','S'].map(d => <span key={d} className="text-[9px] font-black text-slate-300 uppercase">{d}</span>)}
+                              {Array.from({length: 31}, (_, i) => i+1).map(day => (
+                                <button 
+                                  key={day} 
+                                  onClick={() => { setNewVaccineNextDue(`${day.toString().padStart(2, '0')}/05/2025`); setShowNextDueCalendar(false); }}
+                                  className={`aspect-square rounded-xl flex items-center justify-center text-xs font-bold transition-all ${day === 15 ? 'bg-primary text-white shadow-lg' : 'text-secondary dark:text-slate-400 hover:bg-crema dark:hover:bg-slate-700'}`}
+                                >
+                                  {day}
+                                </button>
+                              ))}
+                           </div>
+                         </div>
+                       )}
                      </div>
                    </div>
                  </div>
-                 <button onClick={() => setShowAddVaccine(false)} className="w-full py-5 bg-primary text-white rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">Guardar Registro</button>
+                 <button onClick={handleAddVaccine} className="w-full py-5 bg-primary text-white rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">Guardar Registro</button>
               </div>
            </div>
         </div>
