@@ -10,14 +10,15 @@ import { VetDashboard } from './components/VetDashboard';
 import { VetInventory } from './components/VetInventory';
 import { VetPatients } from './components/VetPatients';
 import { VetAppointments } from './components/VetAppointments';
+import { VetFinancials } from './components/VetFinancials';
 import { Settings } from './components/Settings';
 import { Auth } from './components/Auth';
 import { Pet, AppRole, User, Appointment } from './types';
 import { 
-  Shield, ChevronRight, CheckCircle2, Scan, PhoneCall, ClipboardList, 
-  Utensils, Pill, History, MapPin, Phone, Plus, Calendar, AlertCircle, 
+  Shield, ChevronRight, CheckCircle2, Scan, PhoneCall, ClipboardList,
+  Utensils, Pill, History, MapPin, Phone, Plus, Calendar, AlertCircle,
   X, Camera, MessageSquare, Image as ImageIcon, Settings2, Trash2, ArrowUp, ArrowDown,
-  User as UserIcon
+  User as UserIcon, Pencil
 } from 'lucide-react';
 
 const initialPets: Pet[] = [
@@ -106,6 +107,9 @@ const App: React.FC = () => {
   const [notification, setNotification] = useState<string | null>(null);
   const [selectedMission, setSelectedMission] = useState<any>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [lastMainTab, setLastMainTab] = useState('home');
+  const [hiddenAtajos, setHiddenAtajos] = useState<string[]>([]);
+  const [editingAtajos, setEditingAtajos] = useState(false);
 
   const currentPet = pets.find(p => p.id === selectedPetId) || pets[0];
 
@@ -220,6 +224,13 @@ const App: React.FC = () => {
     setNotification('Se ha creado la cita correctamente');
   };
 
+  const navigateTo = (tab: string) => {
+    setLastMainTab(activeTab);
+    setActiveTab(tab);
+  };
+
+  const navigateBack = () => setActiveTab(lastMainTab);
+
   if (!user) {
     return <Auth onLogin={handleLogin} />;
   }
@@ -241,9 +252,9 @@ const App: React.FC = () => {
         onBack={() => setActiveTab('home')}
       />
     );
-    if (activeTab === 'historial') return <MedicalHistoryView onBack={() => setActiveTab('home')} />;
-    if (activeTab === 'dieta') return <DietPlanView onBack={() => setActiveTab('home')} />;
-    if (activeTab === 'urgencia') return <EmergencyView onBack={() => setActiveTab('home')} />;
+    if (activeTab === 'historial') return <MedicalHistoryView onBack={navigateBack} />;
+    if (activeTab === 'dieta') return <DietPlanView onBack={navigateBack} />;
+    if (activeTab === 'urgencia') return <EmergencyView onBack={navigateBack} />;
 
     const isVet = role === AppRole.VETERINARIAN;
 
@@ -253,6 +264,7 @@ const App: React.FC = () => {
         case 'appointments': return <VetAppointments />;
         case 'patients': return <VetPatients />;
         case 'inventory': return <VetInventory />;
+        case 'financials': return <VetFinancials />;
         default: return <VetDashboard />;
       }
     }
@@ -387,28 +399,71 @@ const App: React.FC = () => {
             </section>
 
             <section className="space-y-4">
-              <h3 className="text-xl font-extrabold text-secondary dark:text-slate-100 px-2">Atajos</h3>
+              <div className="flex justify-between items-center px-2">
+                <h3 className="text-xl font-extrabold text-secondary dark:text-slate-100">Atajos</h3>
+                <button
+                  onClick={() => setEditingAtajos(!editingAtajos)}
+                  className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${editingAtajos ? 'bg-primary text-white shadow-lg' : 'bg-crema dark:bg-slate-800 text-slate-400 hover:text-primary'}`}
+                >
+                  {editingAtajos ? 'Listo' : <><Pencil className="w-3.5 h-3.5" /> Editar</>}
+                </button>
+              </div>
               <div className="grid grid-cols-4 gap-3">
-                <AtajoIcon 
-                  icon={<Calendar />} 
-                  label="Citas" 
-                  color="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500" 
-                  onClick={() => { setActiveTab('health'); setProfileSubTab('appointments'); }} 
-                />
-                <AtajoIcon 
-                  icon={<Scan />} 
-                  label="Vacunas" 
-                  color="bg-rose-50 dark:bg-rose-900/20 text-rose-500" 
-                  onClick={() => { setActiveTab('health'); setProfileSubTab('medical'); }} 
-                />
-                <AtajoIcon icon={<Utensils />} label="Dieta" color="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500" onClick={() => setActiveTab('dieta')} />
-                <AtajoIcon icon={<PhoneCall />} label="Urgencia" color="bg-amber-50 dark:bg-amber-900/20 text-amber-500" onClick={() => setActiveTab('urgencia')} />
-                <AtajoIcon 
-                  icon={<Plus />} 
-                  label="Nuevo" 
-                  color="bg-slate-100 dark:bg-slate-800 text-slate-400" 
-                  onClick={() => setShowPlusMenu(true)} 
-                />
+                {!hiddenAtajos.includes('citas') && (
+                  <AtajoIcon
+                    icon={<Calendar />}
+                    label="Citas"
+                    color="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500"
+                    onClick={() => { setActiveTab('health'); setProfileSubTab('appointments'); }}
+                    onRemove={editingAtajos ? () => setHiddenAtajos(h => [...h, 'citas']) : undefined}
+                  />
+                )}
+                {!hiddenAtajos.includes('vacunas') && (
+                  <AtajoIcon
+                    icon={<Scan />}
+                    label="Vacunas"
+                    color="bg-rose-50 dark:bg-rose-900/20 text-rose-500"
+                    onClick={() => { setActiveTab('health'); setProfileSubTab('medical'); }}
+                    onRemove={editingAtajos ? () => setHiddenAtajos(h => [...h, 'vacunas']) : undefined}
+                  />
+                )}
+                {!hiddenAtajos.includes('dieta') && (
+                  <AtajoIcon
+                    icon={<Utensils />} label="Dieta" color="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500"
+                    onClick={() => navigateTo('dieta')}
+                    onRemove={editingAtajos ? () => setHiddenAtajos(h => [...h, 'dieta']) : undefined}
+                  />
+                )}
+                {!hiddenAtajos.includes('urgencia') && (
+                  <AtajoIcon
+                    icon={<PhoneCall />} label="Urgencia" color="bg-amber-50 dark:bg-amber-900/20 text-amber-500"
+                    onClick={() => navigateTo('urgencia')}
+                    onRemove={editingAtajos ? () => setHiddenAtajos(h => [...h, 'urgencia']) : undefined}
+                  />
+                )}
+                {editingAtajos && hiddenAtajos.map(id => {
+                  const labels: Record<string, string> = { citas: 'Citas', vacunas: 'Vacunas', dieta: 'Dieta', urgencia: 'Urgencia' };
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => setHiddenAtajos(h => h.filter(x => x !== id))}
+                      className="flex flex-col items-center gap-2"
+                    >
+                      <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 text-slate-300 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-primary hover:text-primary transition-all">
+                        <Plus className="w-5 h-5" />
+                      </div>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">{labels[id]}</span>
+                    </button>
+                  );
+                })}
+                {!editingAtajos && (
+                  <AtajoIcon
+                    icon={<Plus />}
+                    label="Nuevo"
+                    color="bg-slate-100 dark:bg-slate-800 text-slate-400"
+                    onClick={() => setShowPlusMenu(true)}
+                  />
+                )}
               </div>
             </section>
 
@@ -431,7 +486,7 @@ const App: React.FC = () => {
             )}
           </div>
         );
-      case 'search': return <VetSearch onAddAppointment={addAppointment} onOpenEmergency={() => setActiveTab('urgencia')} />;
+      case 'search': return <VetSearch onAddAppointment={addAppointment} onOpenEmergency={() => navigateTo('urgencia')} pets={pets} selectedPetId={selectedPetId} />;
       case 'social': return <SocialFeed />;
       case 'health':
         const selectedPet = pets.find(p => p.id === selectedPetId) || pets[0];
@@ -831,13 +886,23 @@ const PendingTaskCard = ({ icon, title, date, type, onClick }: any) => (
   </div>
 );
 
-const AtajoIcon = ({ icon, label, color, onClick }: any) => (
-  <button onClick={onClick} className="flex flex-col items-center gap-2 group">
-    <div className={`w-14 h-14 ${color} rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 group-active:scale-95 transition-all`}>
-      {React.cloneElement(icon as React.ReactElement<any>, { className: 'w-6 h-6' })}
-    </div>
-    <span className="text-[10px] font-black text-secondary dark:text-slate-400 uppercase tracking-tight">{label}</span>
-  </button>
+const AtajoIcon = ({ icon, label, color, onClick, onRemove }: any) => (
+  <div className="relative">
+    {onRemove && (
+      <button
+        onClick={(e) => { e.stopPropagation(); onRemove(); }}
+        className="absolute -top-1 -right-1 z-10 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-rose-600 transition-colors"
+      >
+        <X className="w-3 h-3" />
+      </button>
+    )}
+    <button onClick={onClick} className="flex flex-col items-center gap-2 group w-full">
+      <div className={`w-14 h-14 ${color} rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 group-active:scale-95 transition-all`}>
+        {React.cloneElement(icon as React.ReactElement<any>, { className: 'w-6 h-6' })}
+      </div>
+      <span className="text-[10px] font-black text-secondary dark:text-slate-400 uppercase tracking-tight">{label}</span>
+    </button>
+  </div>
 );
 
 export default App;

@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { Vet, Appointment } from '../types';
+import { Vet, Appointment, Pet } from '../types';
 import { requestLocationPermission } from '../utils/permissions';
-import { 
-  Star, MapPin, CheckCircle, Search as SearchIcon, Filter, MessageSquare, 
+import { CalendarPicker } from './CalendarPicker';
+import {
+  Star, MapPin, CheckCircle, Search as SearchIcon, Filter, MessageSquare,
   Clock, X, Calendar, ChevronLeft, Send, Map as MapIcon, List, LogOut,
   Phone, Mail, CheckCircle2
 } from 'lucide-react';
@@ -50,16 +51,24 @@ const mockVets: Vet[] = [
 interface VetSearchProps {
   onAddAppointment: (app: Appointment) => void;
   onOpenEmergency?: () => void;
+  pets?: Pet[];
+  selectedPetId?: string;
 }
 
-export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment, onOpenEmergency }) => {
+const todayStr = (() => {
+  const d = new Date();
+  return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+})();
+
+export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment, onOpenEmergency, pets = [], selectedPetId }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('Todos');
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   const [showBooking, setShowBooking] = useState<Vet | null>(null);
+  const [bookingPetId, setBookingPetId] = useState<string>(selectedPetId || '');
   const [showContactPopup, setShowContactPopup] = useState<Vet | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [selectedDate, setSelectedDate] = useState('15/05/2024');
+  const [selectedDate, setSelectedDate] = useState(todayStr);
   const [selectedTime, setSelectedTime] = useState('10:30');
   const [bookingReason, setBookingReason] = useState('');
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
@@ -89,21 +98,29 @@ export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment, onOpenEm
 
   const filteredVets = mockVets.filter(vet => {
     const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = vet.name.toLowerCase().includes(searchLower) || 
+    const matchesSearch = vet.name.toLowerCase().includes(searchLower) ||
                           vet.specialties.some(s => s.toLowerCase().includes(searchLower));
     if (activeFilter === '🔥 Popular') return matchesSearch && vet.rating >= 4.8;
     if (activeFilter === '🚑 Emergencia') return matchesSearch && vet.specialties.includes('Urgencias 24h');
-    if (activeFilter === '📍 Cerca') return matchesSearch; // Placeholder for distance logic
     return matchesSearch;
   });
 
+  const displayVets = activeFilter === '📍 Cerca'
+    ? [...filteredVets].sort((a, b) => {
+        const distA = parseFloat(a.location.match(/[\d.]+/)?.[0] ?? '999');
+        const distB = parseFloat(b.location.match(/[\d.]+/)?.[0] ?? '999');
+        return distA - distB;
+      })
+    : filteredVets;
+
   const handleConfirmBooking = () => {
     if (showBooking) {
+      const selectedPet = pets.find(p => p.id === bookingPetId) || pets[0];
       const newApp: Appointment = {
         id: Math.random().toString(36).substr(2, 9),
-        petName: 'Odi', // Default for now
-        ownerName: 'Test User',
-        petImageUrl: 'https://images.unsplash.com/photo-1591768575198-88dac53fbd0a?auto=format&fit=crop&q=80&w=800',
+        petName: selectedPet?.name || 'Mi mascota',
+        ownerName: 'Usuario',
+        petImageUrl: selectedPet?.imageUrl || '',
         reason: bookingReason || 'Chequeo General',
         date: selectedDate,
         time: selectedTime,
@@ -138,16 +155,13 @@ export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment, onOpenEm
       <div className="relative group">
         <div className="absolute inset-0 bg-primary/20 blur-3xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
         <SearchIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 group-focus-within:text-primary transition-colors" />
-        <input 
-          type="text" 
+        <input
+          type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Busca 'Rayos X', 'Cirugía'..." 
-          className="w-full pl-14 pr-16 py-5 bg-white dark:bg-darkCard rounded-5xl border-2 border-transparent shadow-xl focus:border-primary/10 focus:outline-none text-sm font-bold transition-all text-secondary dark:text-slate-100"
+          placeholder="Busca 'Rayos X', 'Cirugía'..."
+          className="w-full pl-14 pr-5 py-5 bg-white dark:bg-darkCard rounded-5xl border-2 border-transparent shadow-xl focus:border-primary/10 focus:outline-none text-sm font-bold transition-all text-secondary dark:text-slate-100"
         />
-        <button className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-secondary dark:bg-slate-700 text-white rounded-3xl hover:bg-primary transition-colors shadow-lg shadow-secondary/10">
-          <Filter className="w-5 h-5" />
-        </button>
       </div>
 
       <div className="flex gap-3 overflow-x-auto pb-4 -mx-5 px-5 no-scrollbar">
@@ -165,7 +179,7 @@ export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment, onOpenEm
       {viewMode === 'list' ? (
         <div className="space-y-6">
           <h3 className="text-xl font-black text-secondary dark:text-slate-100 px-2">Expertos Recomendados</h3>
-          {filteredVets.length > 0 ? filteredVets.map(vet => (
+          {displayVets.length > 0 ? displayVets.map(vet => (
             <div key={vet.id} className="bg-white dark:bg-darkCard p-6 rounded-5xl border border-white dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group overflow-hidden">
               <div className="flex gap-5">
                 <div className="relative shrink-0">
@@ -196,7 +210,7 @@ export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment, onOpenEm
                 </div>
               </div>
               <div className="mt-6 flex gap-3">
-                <button onClick={() => setShowBooking(vet)} className="flex-1 bg-secondary dark:bg-slate-700 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-secondary/5 hover:bg-primary transition-all">
+                <button onClick={() => { setShowBooking(vet); setBookingPetId(selectedPetId || pets[0]?.id || ''); }} className="flex-1 bg-secondary dark:bg-slate-700 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-secondary/5 hover:bg-primary transition-all">
                   Agendar Cita
                 </button>
                 <button onClick={() => setShowContactPopup(vet)} className="px-5 bg-crema dark:bg-slate-800 text-secondary dark:text-slate-400 rounded-2xl hover:bg-primary hover:text-white transition-all shadow-sm">
@@ -209,43 +223,71 @@ export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment, onOpenEm
               <p className="font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">No se encontraron resultados</p>
             </div>
           )}
+
         </div>
       ) : (
-        <div className="bg-white dark:bg-darkCard h-[500px] rounded-5xl border-4 border-white dark:border-slate-800 shadow-xl overflow-hidden relative map-dots">
-           {/* Vista de Mapa Ilustrada - Estructura para Google Maps API */}
-           {!userLocation && (
-             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 dark:bg-darkCard/60 backdrop-blur-sm p-8 text-center">
-               <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
-                 <MapPin className="w-8 h-8" />
-               </div>
-               <h4 className="text-lg font-black text-secondary dark:text-white mb-2">Activar Ubicación</h4>
-               <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 max-w-[200px]">Para mostrarte los veterinarios más cercanos a tu posición actual.</p>
-               <button 
+        <div className="h-[500px] rounded-5xl border-4 border-white dark:border-slate-800 shadow-xl overflow-hidden relative" style={{ backgroundColor: '#e8e4d9' }}>
+          {/* Calles simuladas */}
+          {userLocation && (
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute bg-white/80 h-10 left-0 right-0" style={{ top: '38%' }} />
+              <div className="absolute bg-white/80 h-7 left-0 right-0" style={{ top: '68%' }} />
+              <div className="absolute bg-white/80 w-10 top-0 bottom-0" style={{ left: '32%' }} />
+              <div className="absolute bg-white/80 w-7 top-0 bottom-0" style={{ left: '68%' }} />
+              <div className="absolute bg-emerald-200/60 rounded-2xl" style={{ top: '5%', left: '5%', width: '22%', height: '28%' }} />
+              <div className="absolute bg-emerald-200/40 rounded-xl" style={{ top: '72%', right: '6%', width: '18%', height: '20%' }} />
+              <div className="absolute bg-slate-200/50 rounded-xl" style={{ top: '45%', right: '10%', width: '14%', height: '18%' }} />
+              <div className="absolute bg-slate-200/50 rounded-xl" style={{ top: '8%', left: '40%', width: '22%', height: '24%' }} />
+            </div>
+          )}
+
+          {/* Pantalla de permiso */}
+          {!userLocation && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm p-8 text-center">
+              <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
+                <MapPin className="w-8 h-8" />
+              </div>
+              <h4 className="text-lg font-black text-secondary mb-2">Activar Ubicación</h4>
+              <p className="text-xs text-slate-500 mb-6 max-w-[200px]">Para mostrarte los veterinarios más cercanos a tu posición actual.</p>
+              <button
                 onClick={getCurrentLocation}
                 className="bg-primary text-white px-8 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-all"
-               >
-                 Permitir Acceso
-               </button>
-             </div>
-           )}
-           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-             <div className="bg-primary/20 w-48 h-48 rounded-full blur-3xl"></div>
-             {userLocation && (
-               <div className="absolute bg-blue-500 w-4 h-4 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
-             )}
-           </div>
-           {mockVets.map((v, i) => (
-             <div key={v.id} className="absolute p-2 bg-white dark:bg-slate-700 rounded-2xl shadow-2xl border-2 border-primary animate-bounce" style={{ top: 100 + i*80, left: 150 + i*40 }}>
-                <img src={v.imageUrl} className="w-10 h-10 rounded-xl object-cover" />
-             </div>
-           ))}
-           <div className="absolute bottom-6 left-6 right-6 bg-white/90 dark:bg-darkCard/90 backdrop-blur-xl p-5 rounded-4xl shadow-2xl border border-white dark:border-slate-800 flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white"><MapPin className="w-6 h-6" /></div>
-              <div>
-                <h4 className="font-black text-secondary dark:text-slate-100 text-sm">Mostrando veterinarias en tu zona</h4>
-                <p className="text-[10px] text-slate-400 font-bold uppercase">{filteredVets.length} locales disponibles</p>
+              >
+                Permitir Acceso
+              </button>
+            </div>
+          )}
+
+          {/* Markers de vets */}
+          {userLocation && displayVets.map((v, i) => (
+            <button
+              key={v.id}
+              onClick={() => { setShowBooking(v); setBookingPetId(selectedPetId || ''); }}
+              className="absolute z-10 flex flex-col items-center gap-1 group"
+              style={{ top: `${25 + i * 22}%`, left: `${15 + i * 25}%` }}
+            >
+              <div className="relative">
+                <img src={v.imageUrl} className="w-12 h-12 rounded-2xl object-cover border-2 border-white shadow-xl group-hover:scale-110 transition-transform" alt={v.name} />
+                <div className="absolute -bottom-1 -right-1 bg-primary text-white text-[8px] font-black px-1 rounded-md shadow-sm">★{v.rating}</div>
               </div>
-           </div>
+              <div className="bg-white px-2 py-0.5 rounded-lg shadow-md text-[9px] font-black text-secondary whitespace-nowrap">{v.name.split(' ')[0]} {v.name.split(' ')[1]}</div>
+            </button>
+          ))}
+
+          {/* Punto usuario */}
+          {userLocation && (
+            <div className="absolute z-20 bg-blue-500 w-5 h-5 rounded-full border-3 border-white shadow-xl animate-pulse" style={{ top: '52%', left: '50%', transform: 'translate(-50%,-50%)' }}>
+              <div className="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-40" />
+            </div>
+          )}
+
+          <div className="absolute bottom-6 left-6 right-6 bg-white/90 dark:bg-darkCard/90 backdrop-blur-xl p-5 rounded-4xl shadow-2xl border border-white dark:border-slate-800 flex items-center gap-4">
+            <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white"><MapPin className="w-6 h-6" /></div>
+            <div>
+              <h4 className="font-black text-secondary dark:text-slate-100 text-sm">Mostrando veterinarias en tu zona</h4>
+              <p className="text-[10px] text-slate-400 font-bold uppercase">{displayVets.length} locales disponibles · Toca para agendar</p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -258,37 +300,39 @@ export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment, onOpenEm
               <button onClick={() => setShowBooking(null)} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-slate-400 hover:text-rose-500"><X /></button>
             </div>
             <div className="p-8 space-y-6">
+              {pets.length > 1 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Mascota</span>
+                  <div className="flex gap-2 flex-wrap">
+                    {pets.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => setBookingPetId(p.id)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-2xl border-2 transition-all ${bookingPetId === p.id ? 'border-primary bg-primary/5 text-primary' : 'border-slate-100 dark:border-slate-800 text-slate-400'}`}
+                      >
+                        <img src={p.imageUrl} className="w-6 h-6 rounded-lg object-cover" alt={p.name} />
+                        <span className="text-[10px] font-black uppercase">{p.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="space-y-2 relative">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Fecha de Consulta</span>
-                <button 
+                <button
                   onClick={() => setShowCalendar(!showCalendar)}
                   className="w-full flex items-center gap-4 pl-5 pr-6 py-4 bg-white dark:bg-darkCard rounded-3xl border border-slate-100 dark:border-slate-800 font-bold text-secondary dark:text-slate-200 shadow-sm"
                 >
                   <Calendar className="w-5 h-5 text-primary" />
                   {selectedDate}
                 </button>
-                
                 {showCalendar && (
-                  <div className="absolute top-20 left-0 right-0 z-[210] bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800 p-6 rounded-4xl shadow-2xl animate-in zoom-in-95">
-                    <div className="flex justify-between items-center mb-4 px-1">
-                       <span className="font-black text-secondary dark:text-slate-100 text-sm">Mayo 2024</span>
-                       <div className="flex gap-2">
-                         <button className="p-1.5 bg-crema dark:bg-slate-700 rounded-lg text-slate-400"><ChevronLeft className="w-4 h-4"/></button>
-                         <button className="p-1.5 bg-crema dark:bg-slate-700 rounded-lg text-slate-400"><ChevronLeft className="w-4 h-4 rotate-180"/></button>
-                       </div>
-                    </div>
-                    <div className="grid grid-cols-7 gap-1 text-center">
-                       {['D','L','M','M','J','V','S'].map(d => <span key={d} className="text-[9px] font-black text-slate-300 uppercase">{d}</span>)}
-                       {Array.from({length: 31}, (_, i) => i+1).map(day => (
-                         <button 
-                           key={day} 
-                           onClick={() => { setSelectedDate(`${day}/05/2024`); setShowCalendar(false); }}
-                           className={`aspect-square rounded-xl flex items-center justify-center text-xs font-bold transition-all ${day === 15 ? 'bg-primary text-white shadow-lg' : 'text-secondary dark:text-slate-400 hover:bg-crema dark:hover:bg-slate-700'}`}
-                         >
-                           {day}
-                         </button>
-                       ))}
-                    </div>
+                  <div className="absolute top-20 left-0 right-0 z-[210]">
+                    <CalendarPicker
+                      value={selectedDate}
+                      onChange={(date) => { setSelectedDate(date); setShowCalendar(false); }}
+                      minDate={new Date()}
+                    />
                   </div>
                 )}
               </div>
@@ -368,7 +412,7 @@ export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment, onOpenEm
             
             <button 
               onClick={() => setShowContactPopup(null)}
-              className="w-full mt-4 text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest hover:text-rose-500 transition-colors"
+              className="w-full mt-4 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest hover:text-rose-500 transition-colors"
             >
               Cancelar
             </button>

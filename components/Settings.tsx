@@ -71,7 +71,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
       <div className="bg-white dark:bg-darkCard p-8 rounded-5xl border border-white dark:border-slate-800 shadow-sm flex items-center gap-6 transition-colors">
         <div className="relative group">
           <img 
-            src={user?.photoUrl || "https://images.unsplash.com/photo-1612349317150-e413f6a5b1f8?auto=format&fit=crop&q=80&w=200"} 
+            src={user?.imageUrl || "https://images.unsplash.com/photo-1612349317150-e413f6a5b1f8?auto=format&fit=crop&q=80&w=200"} 
             className="w-20 h-20 rounded-4xl object-cover shadow-xl border-4 border-crema dark:border-slate-700" 
             alt="Profile" 
           />

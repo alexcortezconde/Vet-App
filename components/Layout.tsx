@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Home, Search, Heart, User, Bell, PlusCircle, Settings, Calendar, Users, Package, LogOut, X, MapPin, Bone, Activity, Stethoscope, ClipboardList } from 'lucide-react';
+import { Home, Search, Heart, User, Bell, PlusCircle, Settings, Calendar, Users, Package, LogOut, X, MapPin, Bone, Activity, Stethoscope, ClipboardList, TrendingUp } from 'lucide-react';
 import { AppRole } from '../types';
 
 interface LayoutProps {
@@ -91,7 +91,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
             <>
               <NavItem icon={<Home />} label="Panel" active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
               <NavItem icon={<Calendar />} label="Citas" active={activeTab === 'appointments'} onClick={() => setActiveTab('appointments')} />
-              <PlusButton onClick={() => setShowPlusMenu(!showPlusMenu)} />
+              <NavItem icon={<TrendingUp />} label="Finanzas" active={activeTab === 'financials'} onClick={() => setActiveTab('financials')} />
               <NavItem icon={<Users />} label="Pacientes" active={activeTab === 'patients'} onClick={() => setActiveTab('patients')} />
               <NavItem icon={<Package />} label="Stock" active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')} />
             </>

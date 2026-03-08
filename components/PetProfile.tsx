@@ -1,14 +1,15 @@
 
 import React, { useState } from 'react';
 import { Pet, Appointment } from '../types';
-import { 
-  FileText, 
-  Plus, 
-  Syringe, 
-  ShieldCheck, 
-  Pill, 
-  AlertCircle, 
-  Clock, 
+import { CalendarPicker } from './CalendarPicker';
+import {
+  FileText,
+  Plus,
+  Syringe,
+  ShieldCheck,
+  Pill,
+  AlertCircle,
+  Clock,
   ChevronRight,
   Upload,
   User,
@@ -22,7 +23,10 @@ import {
   Trash2,
   MapPin,
   CheckCircle2,
-  ChevronLeft
+  ChevronLeft,
+  Pencil,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 
 interface PetProfileProps {
@@ -54,10 +58,41 @@ export const PetProfile: React.FC<PetProfileProps> = ({
   const [showRecetaDetail, setShowRecetaDetail] = useState(false);
   const [showAddVaccine, setShowAddVaccine] = useState(false);
   const [newVaccineName, setNewVaccineName] = useState('');
-  const [newVaccineDate, setNewVaccineDate] = useState('15/05/2024');
-  const [newVaccineNextDue, setNewVaccineNextDue] = useState('15/05/2025');
+  const [newVaccineDate, setNewVaccineDate] = useState(() => {
+    const d = new Date();
+    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+  });
+  const [newVaccineNextDue, setNewVaccineNextDue] = useState(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + 1);
+    return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+  });
   const [showDateCalendar, setShowDateCalendar] = useState(false);
   const [showNextDueCalendar, setShowNextDueCalendar] = useState(false);
+  const [showPetSwitcher, setShowPetSwitcher] = useState(false);
+  const [editingInfo, setEditingInfo] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: pet.name,
+    breed: pet.breed,
+    age: pet.age,
+    sex: pet.sex as 'Male' | 'Female' | 'Other',
+    weight: pet.weight,
+  });
+
+  React.useEffect(() => {
+    setEditForm({ name: pet.name, breed: pet.breed, age: pet.age, sex: pet.sex, weight: pet.weight });
+    setEditingInfo(false);
+  }, [pet.id]);
+
+  const handleSaveInfo = () => {
+    onUpdatePet?.({ ...pet, ...editForm });
+    setEditingInfo(false);
+  };
+
+  const handleDeleteVaccine = (index: number) => {
+    const updated = pet.vaccines.filter((_, i) => i !== index);
+    onUpdatePet?.({ ...pet, vaccines: updated });
+  };
 
   const handleAddVaccine = () => {
     if (newVaccineName.trim() === '') return;
@@ -95,14 +130,8 @@ export const PetProfile: React.FC<PetProfileProps> = ({
               </button>
             </div>
           </div>
-          <div className="mt-5 text-center relative">
+          <div className="mt-5 text-center">
             <h2 className="text-4xl font-black text-secondary dark:text-slate-100 tracking-tighter">¡Hola, {pet.name}!</h2>
-            <button 
-              onClick={() => onEditPet?.(pet)}
-              className="absolute -right-8 top-1 p-2 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-crema dark:border-slate-700 text-primary hover:scale-110 transition-all"
-            >
-              <FileText className="w-4 h-4" />
-            </button>
             <div className="flex items-center justify-center gap-3 mt-2">
               <span className="bg-secondary dark:bg-slate-700 text-white px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">{pet.breed}</span>
               <span className="bg-primary/10 text-primary border border-primary/20 px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">{pet.age} años</span>
@@ -112,19 +141,19 @@ export const PetProfile: React.FC<PetProfileProps> = ({
       </div>
 
       <div className="px-1 space-y-6 -mt-4 relative z-10">
-        {/* Pet Switcher in Profile */}
-        <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar px-2">
-          {pets.map(p => (
-            <button 
-              key={p.id}
-              onClick={() => onSwitchPet?.(p.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-2xl border-2 transition-all shrink-0 ${p.id === pet.id ? 'border-primary bg-primary/5 text-primary' : 'border-white dark:border-slate-800 bg-white dark:bg-darkCard text-slate-400'}`}
+        {/* Pet Switcher — botón compacto */}
+        {pets.length > 1 && (
+          <div className="flex justify-end px-2">
+            <button
+              onClick={() => setShowPetSwitcher(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-darkCard rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm text-slate-500 dark:text-slate-400 hover:border-primary hover:text-primary transition-all"
             >
-              <img src={p.imageUrl} className="w-6 h-6 rounded-lg object-cover" alt={p.name} />
-              <span className="text-[10px] font-black uppercase tracking-widest">{p.name}</span>
+              <img src={pet.imageUrl} className="w-5 h-5 rounded-full object-cover" alt={pet.name} />
+              <span className="text-[10px] font-black uppercase tracking-widest">Cambiar perfil</span>
+              <ChevronDown className="w-3.5 h-3.5" />
             </button>
-          ))}
-        </div>
+          </div>
+        )}
 
         <div className="flex bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl p-2 rounded-4xl border border-white/50 dark:border-slate-700 shadow-xl transition-colors">
           <TabButton active={currentTab === 'info'} onClick={() => setActiveTab?.('info')} label="DATOS" />
@@ -135,13 +164,64 @@ export const PetProfile: React.FC<PetProfileProps> = ({
 
         {currentTab === 'info' && (
           <div className="space-y-6 animate-in slide-in-from-bottom-8 duration-500">
-            <SectionTitle title="Información General" icon={<User className="w-5 h-5" />} />
-            <div className="grid grid-cols-2 gap-4">
-               <InfoCard label="Sexo" value={pet.sex === 'Male' ? 'Macho' : 'Hembra'} />
-               <InfoCard label="Peso Actual" value={`${pet.weight} kg`} />
-               <InfoCard label="Microchip" value="Nº 9283-X1" />
-               <InfoCard label="Seguro" value="VetCare Gold" />
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-3">
+                <div className="text-primary"><User className="w-5 h-5" /></div>
+                <h3 className="text-xl font-extrabold text-secondary dark:text-slate-100">Información General</h3>
+              </div>
+              {!editingInfo ? (
+                <button
+                  onClick={() => setEditingInfo(true)}
+                  className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 bg-crema dark:bg-slate-800 text-slate-400 hover:text-primary rounded-xl transition-all"
+                >
+                  <Pencil className="w-3.5 h-3.5" /> Editar
+                </button>
+              ) : (
+                <button
+                  onClick={handleSaveInfo}
+                  className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 bg-primary text-white rounded-xl shadow-lg transition-all"
+                >
+                  <Check className="w-3.5 h-3.5" /> Guardar
+                </button>
+              )}
             </div>
+
+            {editingInfo ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 space-y-1">
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1">Nombre</span>
+                  <input value={editForm.name} onChange={e => setEditForm(f => ({...f, name: e.target.value}))} className="w-full p-4 bg-white dark:bg-darkCard rounded-3xl border border-slate-100 dark:border-slate-800 font-bold text-secondary dark:text-slate-200 text-sm focus:outline-none focus:border-primary/30" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1">Raza</span>
+                  <input value={editForm.breed} onChange={e => setEditForm(f => ({...f, breed: e.target.value}))} className="w-full p-4 bg-white dark:bg-darkCard rounded-3xl border border-slate-100 dark:border-slate-800 font-bold text-secondary dark:text-slate-200 text-sm focus:outline-none focus:border-primary/30" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1">Edad</span>
+                  <input type="number" value={editForm.age} onChange={e => setEditForm(f => ({...f, age: parseInt(e.target.value) || 0}))} className="w-full p-4 bg-white dark:bg-darkCard rounded-3xl border border-slate-100 dark:border-slate-800 font-bold text-secondary dark:text-slate-200 text-sm focus:outline-none focus:border-primary/30" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1">Sexo</span>
+                  <select value={editForm.sex} onChange={e => setEditForm(f => ({...f, sex: e.target.value as any}))} className="w-full p-4 bg-white dark:bg-darkCard rounded-3xl border border-slate-100 dark:border-slate-800 font-bold text-secondary dark:text-slate-200 text-sm focus:outline-none focus:border-primary/30">
+                    <option value="Male">Macho</option>
+                    <option value="Female">Hembra</option>
+                    <option value="Other">Otro</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1">Peso (kg)</span>
+                  <input type="number" step="0.1" value={editForm.weight} onChange={e => setEditForm(f => ({...f, weight: parseFloat(e.target.value) || 0}))} className="w-full p-4 bg-white dark:bg-darkCard rounded-3xl border border-slate-100 dark:border-slate-800 font-bold text-secondary dark:text-slate-200 text-sm focus:outline-none focus:border-primary/30" />
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <InfoCard label="Sexo" value={pet.sex === 'Male' ? 'Macho' : pet.sex === 'Female' ? 'Hembra' : 'Otro'} />
+                <InfoCard label="Peso Actual" value={`${pet.weight} kg`} />
+                <InfoCard label="Raza" value={pet.breed} />
+                <InfoCard label="Edad" value={`${pet.age} años`} />
+              </div>
+            )}
+
             <SectionTitle title="Alergias y Condiciones" icon={<AlertCircle className="w-5 h-5" />} color="text-rose-500" />
             <div className="bg-rose-50/50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/20 p-6 rounded-4xl space-y-4 shadow-sm">
               <div className="space-y-2">
@@ -164,7 +244,9 @@ export const PetProfile: React.FC<PetProfileProps> = ({
           <div className="space-y-6 animate-in slide-in-from-bottom-8 duration-500">
              <SectionTitle title="Seguimiento de Vacunas" icon={<ShieldCheck className="w-5 h-5" />} color="text-emerald-500" />
              <div className="space-y-3">
-               {pet.vaccines.length > 0 ? pet.vaccines.map((v, i) => <MedicalItem key={i} title={v.name} last={v.date} next={v.nextDue} icon={<Syringe />} />) : <div className="text-center py-10 text-slate-400 text-xs font-bold">No hay vacunas registradas</div>}
+               {pet.vaccines.length > 0 ? pet.vaccines.map((v, i) => (
+                 <MedicalItem key={i} title={v.name} last={v.date} next={v.nextDue} icon={<Syringe />} onDelete={() => handleDeleteVaccine(i)} />
+               )) : <div className="text-center py-10 text-slate-400 text-xs font-bold">No hay vacunas registradas</div>}
                <button 
                  onClick={() => setShowAddVaccine(true)}
                  className="w-full py-4 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-4xl text-slate-400 dark:text-slate-600 font-black text-xs uppercase tracking-widest hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2"
@@ -294,26 +376,11 @@ export const PetProfile: React.FC<PetProfileProps> = ({
                          {newVaccineDate}
                        </button>
                        {showDateCalendar && (
-                         <div className="absolute top-20 left-0 right-0 z-[210] bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800 p-6 rounded-4xl shadow-2xl animate-in zoom-in-95">
-                           <div className="flex justify-between items-center mb-4 px-1">
-                              <span className="font-black text-secondary dark:text-slate-100 text-sm">Mayo 2024</span>
-                              <div className="flex gap-2">
-                                <button className="p-1.5 bg-crema dark:bg-slate-700 rounded-lg text-slate-400"><ChevronLeft className="w-4 h-4"/></button>
-                                <button className="p-1.5 bg-crema dark:bg-slate-700 rounded-lg text-slate-400"><ChevronLeft className="w-4 h-4 rotate-180"/></button>
-                              </div>
-                           </div>
-                           <div className="grid grid-cols-7 gap-1 text-center">
-                              {['D','L','M','M','J','V','S'].map(d => <span key={d} className="text-[9px] font-black text-slate-300 uppercase">{d}</span>)}
-                              {Array.from({length: 31}, (_, i) => i+1).map(day => (
-                                <button 
-                                  key={day} 
-                                  onClick={() => { setNewVaccineDate(`${day.toString().padStart(2, '0')}/05/2024`); setShowDateCalendar(false); }}
-                                  className={`aspect-square rounded-xl flex items-center justify-center text-xs font-bold transition-all ${day === 15 ? 'bg-primary text-white shadow-lg' : 'text-secondary dark:text-slate-400 hover:bg-crema dark:hover:bg-slate-700'}`}
-                                >
-                                  {day}
-                                </button>
-                              ))}
-                           </div>
+                         <div className="absolute top-20 left-0 right-0 z-[210]">
+                           <CalendarPicker
+                             value={newVaccineDate}
+                             onChange={(date) => { setNewVaccineDate(date); setShowDateCalendar(false); }}
+                           />
                          </div>
                        )}
                      </div>
@@ -327,26 +394,12 @@ export const PetProfile: React.FC<PetProfileProps> = ({
                          {newVaccineNextDue}
                        </button>
                        {showNextDueCalendar && (
-                         <div className="absolute top-20 left-0 right-0 z-[210] bg-white dark:bg-darkCard border border-slate-100 dark:border-slate-800 p-6 rounded-4xl shadow-2xl animate-in zoom-in-95">
-                           <div className="flex justify-between items-center mb-4 px-1">
-                              <span className="font-black text-secondary dark:text-slate-100 text-sm">Mayo 2025</span>
-                              <div className="flex gap-2">
-                                <button className="p-1.5 bg-crema dark:bg-slate-700 rounded-lg text-slate-400"><ChevronLeft className="w-4 h-4"/></button>
-                                <button className="p-1.5 bg-crema dark:bg-slate-700 rounded-lg text-slate-400"><ChevronLeft className="w-4 h-4 rotate-180"/></button>
-                              </div>
-                           </div>
-                           <div className="grid grid-cols-7 gap-1 text-center">
-                              {['D','L','M','M','J','V','S'].map(d => <span key={d} className="text-[9px] font-black text-slate-300 uppercase">{d}</span>)}
-                              {Array.from({length: 31}, (_, i) => i+1).map(day => (
-                                <button 
-                                  key={day} 
-                                  onClick={() => { setNewVaccineNextDue(`${day.toString().padStart(2, '0')}/05/2025`); setShowNextDueCalendar(false); }}
-                                  className={`aspect-square rounded-xl flex items-center justify-center text-xs font-bold transition-all ${day === 15 ? 'bg-primary text-white shadow-lg' : 'text-secondary dark:text-slate-400 hover:bg-crema dark:hover:bg-slate-700'}`}
-                                >
-                                  {day}
-                                </button>
-                              ))}
-                           </div>
+                         <div className="absolute top-20 left-0 right-0 z-[210]">
+                           <CalendarPicker
+                             value={newVaccineNextDue}
+                             onChange={(date) => { setNewVaccineNextDue(date); setShowNextDueCalendar(false); }}
+                             minDate={new Date()}
+                           />
                          </div>
                        )}
                      </div>
@@ -355,6 +408,34 @@ export const PetProfile: React.FC<PetProfileProps> = ({
                  <button onClick={handleAddVaccine} className="w-full py-5 bg-primary text-white rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">Guardar Registro</button>
               </div>
            </div>
+        </div>
+      )}
+
+      {/* Modal Cambiar Perfil */}
+      {showPetSwitcher && (
+        <div className="fixed inset-0 z-[200] bg-secondary/50 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-darkCard w-full max-w-xs p-8 rounded-5xl shadow-2xl border border-white dark:border-slate-800 relative">
+            <button onClick={() => setShowPetSwitcher(false)} className="absolute top-5 right-5 p-2 bg-crema dark:bg-slate-700 rounded-xl text-slate-400">
+              <X className="w-4 h-4" />
+            </button>
+            <h3 className="text-lg font-black text-secondary dark:text-slate-100 mb-6">Seleccionar Perfil</h3>
+            <div className="flex flex-col gap-3">
+              {pets.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => { onSwitchPet?.(p.id); setShowPetSwitcher(false); }}
+                  className={`flex items-center gap-4 p-4 rounded-3xl border-2 transition-all ${p.id === pet.id ? 'border-primary bg-primary/5' : 'border-slate-100 dark:border-slate-800 hover:border-primary/30'}`}
+                >
+                  <img src={p.imageUrl} className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-slate-700 shadow-md" alt={p.name} />
+                  <div className="text-left flex-1">
+                    <h4 className="font-black text-secondary dark:text-slate-200 text-sm">{p.name}</h4>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">{p.breed} · {p.age} años</p>
+                  </div>
+                  {p.id === pet.id && <CheckCircle2 className="w-5 h-5 text-primary" />}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -428,7 +509,7 @@ const InfoCard = ({ label, value }: any) => (
   </div>
 );
 
-const MedicalItem = ({ title, last, next, icon }: any) => (
+const MedicalItem = ({ title, last, next, icon, onDelete }: any) => (
   <div className="bg-white dark:bg-darkCard p-6 rounded-4xl border border-white dark:border-slate-800 shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
     <div className="flex items-center gap-4">
       <div className="w-11 h-11 bg-crema dark:bg-slate-700 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-inner">
@@ -443,6 +524,12 @@ const MedicalItem = ({ title, last, next, icon }: any) => (
         </div>
       </div>
     </div>
-    <ChevronRight className="w-4 h-4 text-slate-200 dark:text-slate-700" />
+    {onDelete ? (
+      <button onClick={onDelete} className="p-2 rounded-2xl text-slate-300 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-900/20 transition-all">
+        <Trash2 className="w-4 h-4" />
+      </button>
+    ) : (
+      <ChevronRight className="w-4 h-4 text-slate-200 dark:text-slate-700" />
+    )}
   </div>
 );
