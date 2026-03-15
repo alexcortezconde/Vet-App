@@ -74,19 +74,20 @@ export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment, onOpenEm
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
 
   const getCurrentLocation = async () => {
-    const granted = await requestLocationPermission();
-    if (granted) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-        },
-        (error) => {
-          console.error("Error obtaining location:", error);
-        }
-      );
+    // Try real geolocation; always fall back to CDMX for demo
+    const cdmx = { lat: 19.4326, lng: -99.1332 };
+    try {
+      const granted = await requestLocationPermission();
+      if (granted && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => setUserLocation(cdmx)
+        );
+      } else {
+        setUserLocation(cdmx);
+      }
+    } catch {
+      setUserLocation(cdmx);
     }
   };
 
@@ -153,14 +154,13 @@ export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment, onOpenEm
       </div>
 
       <div className="relative group">
-        <div className="absolute inset-0 bg-primary/20 blur-3xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
-        <SearchIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 group-focus-within:text-primary transition-colors" />
+        <SearchIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 group-focus-within:text-primary transition-colors z-10" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Busca 'Rayos X', 'Cirugía'..."
-          className="w-full pl-14 pr-5 py-5 bg-white dark:bg-darkCard rounded-5xl border-2 border-transparent shadow-xl focus:border-primary/10 focus:outline-none text-sm font-bold transition-all text-secondary dark:text-slate-100"
+          className="w-full pl-14 pr-5 py-5 bg-white dark:bg-darkCard rounded-5xl border-2 border-transparent shadow-xl focus:border-primary focus:shadow-2xl focus:outline-none text-sm font-bold transition-all text-secondary dark:text-slate-100"
         />
       </div>
 
@@ -227,23 +227,21 @@ export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment, onOpenEm
         </div>
       ) : (
         <div className="h-[500px] rounded-5xl border-4 border-white dark:border-slate-800 shadow-xl overflow-hidden relative" style={{ backgroundColor: '#e8e4d9' }}>
-          {/* Calles simuladas */}
-          {userLocation && (
-            <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute bg-white/80 h-10 left-0 right-0" style={{ top: '38%' }} />
-              <div className="absolute bg-white/80 h-7 left-0 right-0" style={{ top: '68%' }} />
-              <div className="absolute bg-white/80 w-10 top-0 bottom-0" style={{ left: '32%' }} />
-              <div className="absolute bg-white/80 w-7 top-0 bottom-0" style={{ left: '68%' }} />
-              <div className="absolute bg-emerald-200/60 rounded-2xl" style={{ top: '5%', left: '5%', width: '22%', height: '28%' }} />
-              <div className="absolute bg-emerald-200/40 rounded-xl" style={{ top: '72%', right: '6%', width: '18%', height: '20%' }} />
-              <div className="absolute bg-slate-200/50 rounded-xl" style={{ top: '45%', right: '10%', width: '14%', height: '18%' }} />
-              <div className="absolute bg-slate-200/50 rounded-xl" style={{ top: '8%', left: '40%', width: '22%', height: '24%' }} />
-            </div>
-          )}
+          {/* Calles simuladas — siempre visibles */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute bg-white/80 h-10 left-0 right-0" style={{ top: '38%' }} />
+            <div className="absolute bg-white/80 h-7 left-0 right-0" style={{ top: '68%' }} />
+            <div className="absolute bg-white/80 w-10 top-0 bottom-0" style={{ left: '32%' }} />
+            <div className="absolute bg-white/80 w-7 top-0 bottom-0" style={{ left: '68%' }} />
+            <div className="absolute bg-emerald-200/60 rounded-2xl" style={{ top: '5%', left: '5%', width: '22%', height: '28%' }} />
+            <div className="absolute bg-emerald-200/40 rounded-xl" style={{ top: '72%', right: '6%', width: '18%', height: '20%' }} />
+            <div className="absolute bg-slate-200/50 rounded-xl" style={{ top: '45%', right: '10%', width: '14%', height: '18%' }} />
+            <div className="absolute bg-slate-200/50 rounded-xl" style={{ top: '8%', left: '40%', width: '22%', height: '24%' }} />
+          </div>
 
-          {/* Pantalla de permiso */}
+          {/* Pantalla de permiso — flota encima del mapa */}
           {!userLocation && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm p-8 text-center">
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 backdrop-blur-[2px] p-8 text-center">
               <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
                 <MapPin className="w-8 h-8" />
               </div>

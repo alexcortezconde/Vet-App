@@ -40,19 +40,23 @@ interface PetProfileProps {
   onEditPet?: (pet: Pet) => void;
   onUpdatePet?: (pet: Pet) => void;
   onOpenDiet?: () => void;
+  onUpdateAppointment?: (app: Appointment) => void;
+  onDeleteAppointment?: (id: string) => void;
 }
 
-export const PetProfile: React.FC<PetProfileProps> = ({ 
-  pet, 
-  activeTab = 'info', 
-  setActiveTab, 
+export const PetProfile: React.FC<PetProfileProps> = ({
+  pet,
+  activeTab = 'info',
+  setActiveTab,
   appointments = [],
   pets = [],
   onSwitchPet,
   onAddAppointment,
   onEditPet,
   onUpdatePet,
-  onOpenDiet
+  onOpenDiet,
+  onUpdateAppointment,
+  onDeleteAppointment,
 }) => {
   const [showUpload, setShowUpload] = useState(false);
   const [showRecetaDetail, setShowRecetaDetail] = useState(false);
@@ -70,6 +74,15 @@ export const PetProfile: React.FC<PetProfileProps> = ({
   const [showDateCalendar, setShowDateCalendar] = useState(false);
   const [showNextDueCalendar, setShowNextDueCalendar] = useState(false);
   const [showPetSwitcher, setShowPetSwitcher] = useState(false);
+  const [editingAllergies, setEditingAllergies] = useState(false);
+  const [allergyInput, setAllergyInput] = useState('');
+  const [editingConditions, setEditingConditions] = useState(false);
+  const [conditionInput, setConditionInput] = useState('');
+  const [editingVaccine, setEditingVaccine] = useState<{ index: number; name: string; date: string; nextDue: string } | null>(null);
+  const [showVaxEditDate, setShowVaxEditDate] = useState(false);
+  const [showVaxEditNextDue, setShowVaxEditNextDue] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [showApptCal, setShowApptCal] = useState(false);
   const [editingInfo, setEditingInfo] = useState(false);
   const [editForm, setEditForm] = useState({
     name: pet.name,
@@ -107,6 +120,21 @@ export const PetProfile: React.FC<PetProfileProps> = ({
     });
     setShowAddVaccine(false);
     setNewVaccineName('');
+  };
+
+  const handleSaveVaccineEdit = () => {
+    if (!editingVaccine) return;
+    const updated = pet.vaccines.map((v, i) =>
+      i === editingVaccine.index ? { name: editingVaccine.name, date: editingVaccine.date, nextDue: editingVaccine.nextDue } : v
+    );
+    onUpdatePet?.({ ...pet, vaccines: updated });
+    setEditingVaccine(null);
+  };
+
+  const handleSaveAppointmentEdit = () => {
+    if (!editingAppointment) return;
+    onUpdateAppointment?.(editingAppointment);
+    setEditingAppointment(null);
   };
 
   const currentTab = activeTab;
@@ -225,16 +253,86 @@ export const PetProfile: React.FC<PetProfileProps> = ({
             <SectionTitle title="Alergias y Condiciones" icon={<AlertCircle className="w-5 h-5" />} color="text-rose-500" />
             <div className="bg-rose-50/50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/20 p-6 rounded-4xl space-y-4 shadow-sm">
               <div className="space-y-2">
-                <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Alergias Detectadas</span>
-                <div className="flex flex-wrap gap-2">
-                  {pet.allergies.length > 0 ? pet.allergies.map(a => <span key={a} className="bg-white dark:bg-slate-800 px-3 py-1 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40 shadow-sm">{a}</span>) : <span className="text-xs text-slate-400">Ninguna</span>}
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Alergias Detectadas</span>
+                  <button
+                    onClick={() => setEditingAllergies(e => !e)}
+                    className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg transition-all ${editingAllergies ? 'bg-rose-500 text-white' : 'bg-white dark:bg-slate-800 text-slate-400 hover:text-rose-500'}`}
+                  >
+                    {editingAllergies ? 'Listo' : 'Editar'}
+                  </button>
                 </div>
+                <div className="flex flex-wrap gap-2">
+                  {pet.allergies.map(a => (
+                    <span key={a} className="flex items-center gap-1 bg-white dark:bg-slate-800 px-3 py-1 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40 shadow-sm">
+                      {a}
+                      {editingAllergies && (
+                        <button onClick={() => onUpdatePet?.({ ...pet, allergies: pet.allergies.filter(x => x !== a) })} className="ml-1 text-rose-400 hover:text-rose-600">
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                  {pet.allergies.length === 0 && !editingAllergies && <span className="text-xs text-slate-400">Ninguna</span>}
+                </div>
+                {editingAllergies && (
+                  <div className="flex gap-2 mt-1">
+                    <input
+                      value={allergyInput}
+                      onChange={e => setAllergyInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && allergyInput.trim()) { onUpdatePet?.({ ...pet, allergies: [...pet.allergies, allergyInput.trim()] }); setAllergyInput(''); } }}
+                      placeholder="Nueva alergia..."
+                      className="flex-1 p-2.5 bg-white dark:bg-slate-800 rounded-xl text-xs font-bold text-secondary dark:text-white border border-rose-100 dark:border-rose-900/30 focus:outline-none focus:border-rose-400"
+                    />
+                    <button
+                      onClick={() => { if (allergyInput.trim()) { onUpdatePet?.({ ...pet, allergies: [...pet.allergies, allergyInput.trim()] }); setAllergyInput(''); } }}
+                      className="p-2.5 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
-                <span className="text-[10px] font-black text-secondary/60 dark:text-slate-500 uppercase tracking-widest">Condiciones Crónicas</span>
-                <div className="flex flex-wrap gap-2">
-                  {pet.chronicConditions.length > 0 ? pet.chronicConditions.map(c => <span key={c} className="bg-secondary/5 dark:bg-slate-700 px-3 py-1 rounded-xl text-xs font-bold text-secondary dark:text-slate-300">{c}</span>) : <span className="text-xs text-slate-400">Ninguna</span>}
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-secondary/60 dark:text-slate-500 uppercase tracking-widest">Condiciones Crónicas</span>
+                  <button
+                    onClick={() => setEditingConditions(e => !e)}
+                    className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg transition-all ${editingConditions ? 'bg-secondary text-white' : 'bg-white dark:bg-slate-800 text-slate-400 hover:text-secondary'}`}
+                  >
+                    {editingConditions ? 'Listo' : 'Editar'}
+                  </button>
                 </div>
+                <div className="flex flex-wrap gap-2">
+                  {pet.chronicConditions.map(c => (
+                    <span key={c} className="flex items-center gap-1 bg-secondary/5 dark:bg-slate-700 px-3 py-1 rounded-xl text-xs font-bold text-secondary dark:text-slate-300">
+                      {c}
+                      {editingConditions && (
+                        <button onClick={() => onUpdatePet?.({ ...pet, chronicConditions: pet.chronicConditions.filter(x => x !== c) })} className="ml-1 text-slate-400 hover:text-rose-500">
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                  {pet.chronicConditions.length === 0 && !editingConditions && <span className="text-xs text-slate-400">Ninguna</span>}
+                </div>
+                {editingConditions && (
+                  <div className="flex gap-2 mt-1">
+                    <input
+                      value={conditionInput}
+                      onChange={e => setConditionInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && conditionInput.trim()) { onUpdatePet?.({ ...pet, chronicConditions: [...pet.chronicConditions, conditionInput.trim()] }); setConditionInput(''); } }}
+                      placeholder="Nueva condición..."
+                      className="flex-1 p-2.5 bg-white dark:bg-slate-800 rounded-xl text-xs font-bold text-secondary dark:text-white border border-slate-200 dark:border-slate-700 focus:outline-none focus:border-secondary/40"
+                    />
+                    <button
+                      onClick={() => { if (conditionInput.trim()) { onUpdatePet?.({ ...pet, chronicConditions: [...pet.chronicConditions, conditionInput.trim()] }); setConditionInput(''); } }}
+                      className="p-2.5 bg-secondary text-white rounded-xl hover:bg-secondary/80 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -245,7 +343,7 @@ export const PetProfile: React.FC<PetProfileProps> = ({
              <SectionTitle title="Seguimiento de Vacunas" icon={<ShieldCheck className="w-5 h-5" />} color="text-emerald-500" />
              <div className="space-y-3">
                {pet.vaccines.length > 0 ? pet.vaccines.map((v, i) => (
-                 <MedicalItem key={i} title={v.name} last={v.date} next={v.nextDue} icon={<Syringe />} onDelete={() => handleDeleteVaccine(i)} />
+                 <MedicalItem key={i} title={v.name} last={v.date} next={v.nextDue} icon={<Syringe />} onEdit={() => setEditingVaccine({ index: i, name: v.name, date: v.date, nextDue: v.nextDue })} onDelete={() => handleDeleteVaccine(i)} />
                )) : <div className="text-center py-10 text-slate-400 text-xs font-bold">No hay vacunas registradas</div>}
                <button 
                  onClick={() => setShowAddVaccine(true)}
@@ -284,19 +382,28 @@ export const PetProfile: React.FC<PetProfileProps> = ({
             <div className="space-y-4">
               {appointments.filter(a => a.petName === pet.name).length > 0 ? (
                 appointments.filter(a => a.petName === pet.name).map(app => (
-                  <div key={app.id} className="bg-white dark:bg-darkCard p-6 rounded-4xl border border-white dark:border-slate-800 shadow-sm flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-2xl flex items-center justify-center">
-                        <Calendar className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h4 className="font-black text-secondary dark:text-slate-200 text-sm">{app.reason}</h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{app.date} • {app.time}</span>
-                        </div>
-                      </div>
+                  <div key={app.id} className="bg-white dark:bg-darkCard p-5 rounded-4xl border border-white dark:border-slate-800 shadow-sm flex items-center gap-3">
+                    <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-2xl flex items-center justify-center shrink-0">
+                      <Calendar className="w-6 h-6" />
                     </div>
-                    <span className="text-[9px] font-black uppercase text-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1 rounded-xl">Confirmada</span>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-black text-secondary dark:text-slate-200 text-sm truncate">{app.reason}</h4>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{app.date} • {app.time}</span>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => setEditingAppointment(app)}
+                        className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-2xl hover:bg-indigo-500 hover:text-white transition-all"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => onDeleteAppointment?.(app.id)}
+                        className="p-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-400 rounded-2xl hover:bg-rose-500 hover:text-white transition-all"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -348,66 +455,174 @@ export const PetProfile: React.FC<PetProfileProps> = ({
       {/* Modal Añadir Vacuna */}
       {showAddVaccine && (
         <div className="fixed inset-0 z-[200] bg-secondary/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-           <div className="bg-white dark:bg-darkCard w-full max-w-md rounded-t-5xl sm:rounded-5xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10">
-              <div className="p-8 space-y-6">
-                 <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-black text-secondary dark:text-slate-100">Nueva Vacuna</h3>
-                    <button onClick={() => setShowAddVaccine(false)} className="p-2 bg-crema dark:bg-slate-700 rounded-xl text-slate-400"><X /></button>
-                 </div>
-                   <div className="space-y-4">
-                   <div className="space-y-2">
-                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nombre de Vacuna</span>
-                     <input 
-                       type="text" 
-                       placeholder="Ej. Moquillo" 
-                       value={newVaccineName}
-                       onChange={(e) => setNewVaccineName(e.target.value)}
-                       className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20" 
-                     />
-                   </div>
-                   <div className="grid grid-cols-2 gap-4">
-                     <div className="space-y-2 relative">
-                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Aplicación</span>
-                       <button 
-                         onClick={() => { setShowDateCalendar(!showDateCalendar); setShowNextDueCalendar(false); }}
-                         className="w-full flex items-center gap-3 p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200 text-sm"
-                       >
-                         <Calendar className="w-4 h-4 text-primary" />
-                         {newVaccineDate}
-                       </button>
-                       {showDateCalendar && (
-                         <div className="absolute top-20 left-0 right-0 z-[210]">
-                           <CalendarPicker
-                             value={newVaccineDate}
-                             onChange={(date) => { setNewVaccineDate(date); setShowDateCalendar(false); }}
-                           />
-                         </div>
-                       )}
-                     </div>
-                     <div className="space-y-2 relative">
-                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Próxima Dosis</span>
-                       <button 
-                         onClick={() => { setShowNextDueCalendar(!showNextDueCalendar); setShowDateCalendar(false); }}
-                         className="w-full flex items-center gap-3 p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200 text-sm"
-                       >
-                         <Calendar className="w-4 h-4 text-primary" />
-                         {newVaccineNextDue}
-                       </button>
-                       {showNextDueCalendar && (
-                         <div className="absolute top-20 left-0 right-0 z-[210]">
-                           <CalendarPicker
-                             value={newVaccineNextDue}
-                             onChange={(date) => { setNewVaccineNextDue(date); setShowNextDueCalendar(false); }}
-                             minDate={new Date()}
-                           />
-                         </div>
-                       )}
-                     </div>
-                   </div>
-                 </div>
-                 <button onClick={handleAddVaccine} className="w-full py-5 bg-primary text-white rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">Guardar Registro</button>
+          <div className="bg-white dark:bg-darkCard w-full max-w-md rounded-t-5xl sm:rounded-5xl shadow-2xl overflow-y-auto max-h-[90vh] animate-in slide-in-from-bottom-10">
+            <div className="p-8 space-y-5">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-black text-secondary dark:text-slate-100">Nueva Vacuna</h3>
+                <button onClick={() => { setShowAddVaccine(false); setShowDateCalendar(false); setShowNextDueCalendar(false); }} className="p-2 bg-crema dark:bg-slate-700 rounded-xl text-slate-400"><X /></button>
               </div>
-           </div>
+              <div className="space-y-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nombre de Vacuna</span>
+                <input
+                  type="text"
+                  placeholder="Ej. Moquillo"
+                  value={newVaccineName}
+                  onChange={(e) => setNewVaccineName(e.target.value)}
+                  className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200 focus:outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Aplicación</span>
+                <button
+                  onClick={() => { setShowDateCalendar(v => !v); setShowNextDueCalendar(false); }}
+                  className="w-full flex items-center gap-3 p-4 bg-crema dark:bg-slate-800 rounded-3xl font-bold text-secondary dark:text-slate-200 text-sm"
+                >
+                  <Calendar className="w-4 h-4 text-primary" />
+                  {newVaccineDate}
+                </button>
+                {showDateCalendar && (
+                  <CalendarPicker
+                    value={newVaccineDate}
+                    onChange={(date) => { setNewVaccineDate(date); setShowDateCalendar(false); }}
+                  />
+                )}
+              </div>
+              <div className="space-y-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Próxima Dosis</span>
+                <button
+                  onClick={() => { setShowNextDueCalendar(v => !v); setShowDateCalendar(false); }}
+                  className="w-full flex items-center gap-3 p-4 bg-crema dark:bg-slate-800 rounded-3xl font-bold text-secondary dark:text-slate-200 text-sm"
+                >
+                  <Calendar className="w-4 h-4 text-primary" />
+                  {newVaccineNextDue}
+                </button>
+                {showNextDueCalendar && (
+                  <CalendarPicker
+                    value={newVaccineNextDue}
+                    onChange={(date) => { setNewVaccineNextDue(date); setShowNextDueCalendar(false); }}
+                    minDate={new Date()}
+                  />
+                )}
+              </div>
+              <button onClick={handleAddVaccine} className="w-full py-5 bg-primary text-white rounded-3xl font-black uppercase tracking-widest shadow-xl">Guardar Registro</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Vacuna */}
+      {editingVaccine && (
+        <div className="fixed inset-0 z-[200] bg-secondary/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white dark:bg-darkCard w-full max-w-md rounded-t-5xl sm:rounded-5xl shadow-2xl overflow-y-auto max-h-[90vh] animate-in slide-in-from-bottom-10">
+            <div className="p-8 space-y-5">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-black text-secondary dark:text-slate-100">Editar Vacuna</h3>
+                <button onClick={() => { setEditingVaccine(null); setShowVaxEditDate(false); setShowVaxEditNextDue(false); }} className="p-2 bg-crema dark:bg-slate-700 rounded-xl text-slate-400"><X /></button>
+              </div>
+              <div className="space-y-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nombre de Vacuna</span>
+                <input
+                  value={editingVaccine.name}
+                  onChange={e => setEditingVaccine(v => v ? { ...v, name: e.target.value } : v)}
+                  className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200 focus:outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha Aplicación</span>
+                <button
+                  onClick={() => { setShowVaxEditDate(v => !v); setShowVaxEditNextDue(false); }}
+                  className="w-full flex items-center gap-3 p-4 bg-crema dark:bg-slate-800 rounded-3xl font-bold text-secondary dark:text-slate-200 text-sm"
+                >
+                  <Calendar className="w-4 h-4 text-primary" />
+                  {editingVaccine.date}
+                </button>
+                {showVaxEditDate && (
+                  <CalendarPicker
+                    value={editingVaccine.date}
+                    onChange={(date) => { setEditingVaccine(v => v ? { ...v, date } : v); setShowVaxEditDate(false); }}
+                  />
+                )}
+              </div>
+              <div className="space-y-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Próxima Dosis</span>
+                <button
+                  onClick={() => { setShowVaxEditNextDue(v => !v); setShowVaxEditDate(false); }}
+                  className="w-full flex items-center gap-3 p-4 bg-crema dark:bg-slate-800 rounded-3xl font-bold text-secondary dark:text-slate-200 text-sm"
+                >
+                  <Calendar className="w-4 h-4 text-primary" />
+                  {editingVaccine.nextDue}
+                </button>
+                {showVaxEditNextDue && (
+                  <CalendarPicker
+                    value={editingVaccine.nextDue}
+                    onChange={(date) => { setEditingVaccine(v => v ? { ...v, nextDue: date } : v); setShowVaxEditNextDue(false); }}
+                  />
+                )}
+              </div>
+              <button onClick={handleSaveVaccineEdit} className="w-full py-5 bg-primary text-white rounded-3xl font-black uppercase tracking-widest shadow-xl">Guardar Cambios</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Cita */}
+      {editingAppointment && (
+        <div className="fixed inset-0 z-[200] bg-secondary/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white dark:bg-darkCard w-full max-w-md rounded-t-5xl sm:rounded-5xl shadow-2xl overflow-y-auto max-h-[90vh] animate-in slide-in-from-bottom-10">
+            <div className="p-8 space-y-5">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-black text-secondary dark:text-slate-100">Editar Cita</h3>
+                <button onClick={() => { setEditingAppointment(null); setShowApptCal(false); }} className="p-2 bg-crema dark:bg-slate-700 rounded-xl text-slate-400"><X /></button>
+              </div>
+              <div className="space-y-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Motivo</span>
+                <input
+                  value={editingAppointment.reason}
+                  onChange={e => setEditingAppointment(a => a ? { ...a, reason: e.target.value } : a)}
+                  className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200 focus:outline-none"
+                />
+              </div>
+              <div className="space-y-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</span>
+                <button
+                  onClick={() => setShowApptCal(v => !v)}
+                  className="w-full flex items-center gap-3 p-4 bg-crema dark:bg-slate-800 rounded-3xl font-bold text-secondary dark:text-slate-200 text-sm"
+                >
+                  <Calendar className="w-4 h-4 text-primary" />
+                  {editingAppointment.date}
+                </button>
+                {showApptCal && (
+                  <CalendarPicker
+                    value={editingAppointment.date}
+                    onChange={(date) => { setEditingAppointment(a => a ? { ...a, date } : a); setShowApptCal(false); }}
+                  />
+                )}
+              </div>
+              <div className="space-y-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hora</span>
+                <input
+                  type="time"
+                  value={editingAppointment.time}
+                  onChange={e => setEditingAppointment(a => a ? { ...a, time: e.target.value } : a)}
+                  className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200 focus:outline-none"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { onDeleteAppointment?.(editingAppointment.id); setEditingAppointment(null); }}
+                  className="flex-1 py-4 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all"
+                >
+                  Cancelar Cita
+                </button>
+                <button
+                  onClick={handleSaveAppointmentEdit}
+                  className="flex-1 py-4 bg-indigo-500 text-white rounded-3xl font-black text-xs uppercase tracking-widest shadow-lg"
+                >
+                  Reagendar
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -509,27 +724,30 @@ const InfoCard = ({ label, value }: any) => (
   </div>
 );
 
-const MedicalItem = ({ title, last, next, icon, onDelete }: any) => (
-  <div className="bg-white dark:bg-darkCard p-6 rounded-4xl border border-white dark:border-slate-800 shadow-sm flex items-center justify-between group hover:shadow-md transition-all">
-    <div className="flex items-center gap-4">
-      <div className="w-11 h-11 bg-crema dark:bg-slate-700 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-inner">
-        {React.cloneElement(icon, { className: 'w-5 h-5' })}
-      </div>
-      <div>
-        <h4 className="font-black text-secondary dark:text-slate-200 text-sm leading-none">{title}</h4>
-        <div className="flex items-center gap-2 mt-2">
-          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">Última: {last}</span>
-          <span className="w-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full"></span>
-          <span className="text-[10px] text-primary font-black uppercase tracking-tight">Próx: {next}</span>
-        </div>
+const MedicalItem = ({ title, last, next, icon, onDelete, onEdit }: any) => (
+  <div className="bg-white dark:bg-darkCard p-6 rounded-4xl border border-white dark:border-slate-800 shadow-sm flex items-center gap-4 group hover:shadow-md transition-all">
+    <div className="w-11 h-11 bg-crema dark:bg-slate-700 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-inner shrink-0">
+      {React.cloneElement(icon, { className: 'w-5 h-5' })}
+    </div>
+    <div className="flex-1 min-w-0">
+      <h4 className="font-black text-secondary dark:text-slate-200 text-sm leading-none">{title}</h4>
+      <div className="flex items-center gap-2 mt-2 flex-wrap">
+        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">Última: {last}</span>
+        <span className="w-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full"></span>
+        <span className="text-[10px] text-primary font-black uppercase tracking-tight">Próx: {next}</span>
       </div>
     </div>
-    {onDelete ? (
-      <button onClick={onDelete} className="p-2 rounded-2xl text-slate-300 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-900/20 transition-all">
-        <Trash2 className="w-4 h-4" />
-      </button>
-    ) : (
-      <ChevronRight className="w-4 h-4 text-slate-200 dark:text-slate-700" />
-    )}
+    <div className="flex gap-2 shrink-0">
+      {onEdit && (
+        <button onClick={onEdit} className="p-2 rounded-2xl text-slate-300 hover:bg-indigo-50 hover:text-indigo-500 dark:hover:bg-indigo-900/20 transition-all">
+          <Pencil className="w-4 h-4" />
+        </button>
+      )}
+      {onDelete && (
+        <button onClick={onDelete} className="p-2 rounded-2xl text-slate-300 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-900/20 transition-all">
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
+    </div>
   </div>
 );

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Layout } from './components/Layout';
 import { VetSearch } from './components/VetSearch';
 import { SocialFeed } from './components/SocialFeed';
@@ -13,11 +13,11 @@ import { VetFinancials } from './components/VetFinancials';
 import { Settings } from './components/Settings';
 import { Auth } from './components/Auth';
 import { Pet, AppRole, User, Appointment } from './types';
-import { 
+import {
   Shield, ChevronRight, CheckCircle2, Scan, PhoneCall, ClipboardList,
   Utensils, Pill, History, MapPin, Phone, Plus, Calendar, AlertCircle,
   X, Camera, MessageSquare, Image as ImageIcon, Settings2, Trash2, ArrowUp, ArrowDown,
-  User as UserIcon, Pencil
+  User as UserIcon, Heart, Syringe
 } from 'lucide-react';
 
 const initialPets: Pet[] = [
@@ -106,10 +106,64 @@ const App: React.FC = () => {
   const [selectedMission, setSelectedMission] = useState<any>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [lastMainTab, setLastMainTab] = useState('home');
-  const [hiddenAtajos, setHiddenAtajos] = useState<string[]>([]);
-  const [editingAtajos, setEditingAtajos] = useState(false);
+  const [completedMissions, setCompletedMissions] = useState<string[]>([]);
 
   const currentPet = pets.find(p => p.id === selectedPetId) || pets[0];
+
+  const derivedMissions = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const missions: Array<{ id: string; type: 'vaccine' | 'appointment'; title: string; description: string; date: string; typeLabel: string; petName: string; daysUntil: number }> = [];
+
+    // Handles both YYYY-MM-DD (initial data) and DD/MM/YYYY (CalendarPicker output)
+    const parseDate = (s: string) => {
+      if (s.includes('/')) {
+        const [d, m, y] = s.split('/').map(Number);
+        const dt = new Date(y, m - 1, d);
+        dt.setHours(0, 0, 0, 0);
+        return dt;
+      }
+      const dt = new Date(s);
+      dt.setHours(0, 0, 0, 0);
+      return dt;
+    };
+
+    currentPet.vaccines.forEach(v => {
+      const dueDate = parseDate(v.nextDue);
+      const daysUntil = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      missions.push({
+        id: `vaccine-${currentPet.id}-${v.name}`,
+        type: 'vaccine',
+        title: v.name,
+        description: `La próxima dosis de ${v.name} ${daysUntil < 0 ? `venció hace ${Math.abs(daysUntil)} días` : daysUntil === 0 ? 'vence hoy' : `vence en ${daysUntil} días`}. Agenda una cita con tu veterinario.`,
+        date: daysUntil < 0 ? 'VENCIDA' : daysUntil === 0 ? 'Hoy' : `en ${daysUntil} días`,
+        typeLabel: daysUntil < 0 ? 'Urgente' : 'Salud',
+        petName: currentPet.name,
+        daysUntil,
+      });
+    });
+
+    appointments
+      .filter(app => app.petName === currentPet.name)
+      .forEach(app => {
+        const appDate = parseDate(app.date);
+        const daysUntil = Math.ceil((appDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        if (daysUntil >= 0) {
+          missions.push({
+            id: `appointment-${app.id}`,
+            type: 'appointment',
+            title: app.reason,
+            description: `${app.petName} tiene una cita ${daysUntil === 0 ? 'hoy' : `en ${daysUntil} días`}.`,
+            date: daysUntil === 0 ? 'Hoy' : `en ${daysUntil} días`,
+            typeLabel: 'Cita',
+            petName: app.petName,
+            daysUntil,
+          });
+        }
+      });
+
+    return missions.filter(m => !completedMissions.includes(m.id));
+  }, [currentPet, appointments, completedMissions]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -222,6 +276,16 @@ const App: React.FC = () => {
     setNotification('Se ha creado la cita correctamente');
   };
 
+  const handleUpdateAppointment = (updated: Appointment) => {
+    setAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
+    setNotification('Cita actualizada correctamente');
+  };
+
+  const handleDeleteAppointment = (id: string) => {
+    setAppointments(prev => prev.filter(a => a.id !== id));
+    setNotification('Cita cancelada');
+  };
+
   const navigateTo = (tab: string) => {
     setLastMainTab(activeTab);
     setActiveTab(tab);
@@ -267,9 +331,12 @@ const App: React.FC = () => {
 
     switch (activeTab) {
       case 'home':
-        const isVaccineOverdue = currentPet.vaccines.some(v => new Date(v.nextDue) < new Date());
-        const statusColor = isVaccineOverdue ? 'bg-rose-500' : currentPet.id === 'turtle-1' ? 'bg-amber-500' : 'bg-emerald-500';
-        const statusText = isVaccineOverdue ? `${currentPet.name} necesita atención 🔴` : `${currentPet.name} está genial 🟢`;
+        const hasExpired = derivedMissions.some(m => m.daysUntil < 0);
+        const hasImminent = !hasExpired && derivedMissions.some(m => m.daysUntil >= 0 && m.daysUntil <= 10);
+        const statusColor = hasExpired ? 'bg-rose-500' : hasImminent ? 'bg-amber-500' : 'bg-emerald-500';
+        const statusText = hasExpired ? `${currentPet.name} necesita atención 🔴` : hasImminent ? `${currentPet.name} está bien 🟡` : `${currentPet.name} está genial 🟢`;
+        const statusSubtext = hasExpired ? 'Tiene registros vencidos que requieren atención.' : hasImminent ? 'Hay recordatorios próximos a vencer.' : 'Todo bajo control por aquí.';
+        const statusBadge = hasExpired ? 'Atención Requerida' : hasImminent ? 'Recordatorio' : 'Saludable';
 
         return (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -316,23 +383,21 @@ const App: React.FC = () => {
                   <div className="absolute inset-0 bg-white/20 blur-2xl rounded-full scale-110"></div>
                   <img src={currentPet.imageUrl} className="w-28 h-28 rounded-full border-4 border-white relative z-10 object-cover shadow-2xl" alt={currentPet.name} />
                   <div className={`absolute -bottom-2 -right-2 ${statusColor} w-8 h-8 rounded-full border-4 border-white flex items-center justify-center z-20 shadow-lg`}>
-                    {isVaccineOverdue ? <AlertCircle className="w-4 h-4 text-white" /> : <CheckCircle2 className="w-4 h-4 text-white" />}
+                    {hasExpired ? <AlertCircle className="w-4 h-4 text-white" /> : <CheckCircle2 className="w-4 h-4 text-white" />}
                   </div>
                 </div>
                 <div>
                   <h2 className="text-2xl font-black">{statusText}</h2>
-                  <p className="text-white/80 text-xs font-medium mt-1">
-                    {isVaccineOverdue ? 'Tiene vacunas pendientes de aplicación.' : 'Todo bajo control por aquí.'}
-                  </p>
+                  <p className="text-white/80 text-xs font-medium mt-1">{statusSubtext}</p>
                   <div className="flex justify-center gap-3 mt-4">
                     <div className="bg-white/20 px-4 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest backdrop-blur-md">
-                      {isVaccineOverdue ? 'Atención Requerida' : 'Saludable'}
+                      {statusBadge}
                     </div>
                   </div>
                 </div>
               </div>
               <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
-              {isVaccineOverdue && (
+              {hasExpired && (
                 <div className="absolute top-4 right-4 bg-white/20 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest animate-pulse">
                   Alerta Médica
                 </div>
@@ -343,123 +408,60 @@ const App: React.FC = () => {
               <div className="flex justify-between items-center px-2">
                 <h3 className="text-xl font-extrabold text-secondary dark:text-slate-100">Próximas Misiones</h3>
                 <span className="bg-accent/10 text-accent px-3 py-1 rounded-full text-[10px] font-black uppercase">
-                  {currentPet.vaccines.length > 0 ? (isVaccineOverdue ? '3 Pendientes' : '2 Pendientes') : '0 Pendientes'}
+                  {derivedMissions.length} Pendientes
                 </span>
               </div>
               <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-5 px-5">
-                {currentPet.vaccines.length > 0 ? (
-                  <>
-                    {isVaccineOverdue && (
-                      <PendingTaskCard 
-                        icon={<AlertCircle className="text-rose-500" />} 
-                        title="Vacuna Rabia" 
-                        date="VENCIDA" 
-                        type="Urgente" 
-                        onClick={() => setSelectedMission({ title: 'Vacuna Rabia', message: `${currentPet.name} necesita su vacuna de Rabia lo antes posible. Estaba programada para el año pasado.` })}
-                      />
-                    )}
-                    <PendingTaskCard 
-                      icon={<Shield className="text-primary" />} 
-                      title="Vacuna Sextuple" 
-                      date="en 12 días" 
-                      type="Salud" 
-                      onClick={() => setSelectedMission({ title: 'Vacuna Sextuple', message: `${currentPet.name} necesita agendar una cita para el 4 de marzo.` })}
+                {derivedMissions.length > 0 ? (
+                  derivedMissions.map(mission => (
+                    <PendingTaskCard
+                      key={mission.id}
+                      icon={mission.type === 'vaccine'
+                        ? <Syringe className={mission.typeLabel === 'Urgente' ? 'text-rose-500' : 'text-primary'} />
+                        : <Calendar className="text-indigo-500" />}
+                      title={mission.title}
+                      date={mission.date}
+                      type={mission.typeLabel}
+                      onClick={() => setSelectedMission(mission)}
                     />
-                    <PendingTaskCard 
-                      icon={<Pill className="text-amber-500" />} 
-                      title="Desparasitación" 
-                      date="en 30 días" 
-                      type="Control" 
-                      onClick={() => setSelectedMission({ title: 'Desparasitación', message: `Toca desparasitación interna para ${currentPet.name} el próximo mes.` })}
-                    />
-                    <PendingTaskCard 
-                      icon={<Utensils className="text-emerald-500" />} 
-                      title="Baño y Peluquería" 
-                      date="en 5 días" 
-                      type="Higiene" 
-                      onClick={() => setSelectedMission({ title: 'Baño y Peluquería', message: `¡Hora de ponerse guapo! Cita en la peluquería el viernes.` })}
-                    />
-                  </>
+                  ))
                 ) : (
                   <div className="w-full flex flex-col items-center justify-center py-10 bg-white/50 dark:bg-darkCard/50 rounded-4xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-                    <p className="text-slate-400 text-xs font-bold mb-4">No hay misiones para {currentPet.name}</p>
-                    <button 
-                      onClick={() => setShowPlusMenu(true)}
-                      className="bg-primary text-white px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20"
-                    >
-                      Agregar Misión
-                    </button>
+                    <p className="text-slate-400 text-xs font-bold">Todo al día, sin misiones pendientes</p>
                   </div>
                 )}
               </div>
             </section>
 
             <section className="space-y-4">
-              <div className="flex justify-between items-center px-2">
+              <div className="px-2">
                 <h3 className="text-xl font-extrabold text-secondary dark:text-slate-100">Atajos</h3>
-                <button
-                  onClick={() => setEditingAtajos(!editingAtajos)}
-                  className={`text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${editingAtajos ? 'bg-primary text-white shadow-lg' : 'bg-crema dark:bg-slate-800 text-slate-400 hover:text-primary'}`}
-                >
-                  {editingAtajos ? 'Listo' : <><Pencil className="w-3.5 h-3.5" /> Editar</>}
-                </button>
               </div>
               <div className="grid grid-cols-4 gap-3">
-                {!hiddenAtajos.includes('citas') && (
-                  <AtajoIcon
-                    icon={<Calendar />}
-                    label="Citas"
-                    color="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500"
-                    onClick={() => { setActiveTab('health'); setProfileSubTab('appointments'); }}
-                    onRemove={editingAtajos ? () => setHiddenAtajos(h => [...h, 'citas']) : undefined}
-                  />
-                )}
-                {!hiddenAtajos.includes('vacunas') && (
-                  <AtajoIcon
-                    icon={<Scan />}
-                    label="Vacunas"
-                    color="bg-rose-50 dark:bg-rose-900/20 text-rose-500"
-                    onClick={() => { setActiveTab('health'); setProfileSubTab('medical'); }}
-                    onRemove={editingAtajos ? () => setHiddenAtajos(h => [...h, 'vacunas']) : undefined}
-                  />
-                )}
-                {!hiddenAtajos.includes('dieta') && (
-                  <AtajoIcon
-                    icon={<Utensils />} label="Dieta" color="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500"
-                    onClick={() => navigateTo('dieta')}
-                    onRemove={editingAtajos ? () => setHiddenAtajos(h => [...h, 'dieta']) : undefined}
-                  />
-                )}
-                {!hiddenAtajos.includes('urgencia') && (
-                  <AtajoIcon
-                    icon={<PhoneCall />} label="Urgencia" color="bg-amber-50 dark:bg-amber-900/20 text-amber-500"
-                    onClick={() => navigateTo('urgencia')}
-                    onRemove={editingAtajos ? () => setHiddenAtajos(h => [...h, 'urgencia']) : undefined}
-                  />
-                )}
-                {editingAtajos && hiddenAtajos.map(id => {
-                  const labels: Record<string, string> = { citas: 'Citas', vacunas: 'Vacunas', dieta: 'Dieta', urgencia: 'Urgencia' };
-                  return (
-                    <button
-                      key={id}
-                      onClick={() => setHiddenAtajos(h => h.filter(x => x !== id))}
-                      className="flex flex-col items-center gap-2"
-                    >
-                      <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 text-slate-300 rounded-2xl flex items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-primary hover:text-primary transition-all">
-                        <Plus className="w-5 h-5" />
-                      </div>
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">{labels[id]}</span>
-                    </button>
-                  );
-                })}
-                {!editingAtajos && (
-                  <AtajoIcon
-                    icon={<Plus />}
-                    label="Nuevo"
-                    color="bg-slate-100 dark:bg-slate-800 text-slate-400"
-                    onClick={() => setShowPlusMenu(true)}
-                  />
-                )}
+                <AtajoIcon
+                  icon={<Calendar />}
+                  label="Citas"
+                  color="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500"
+                  onClick={() => { setActiveTab('health'); setProfileSubTab('appointments'); }}
+                />
+                <AtajoIcon
+                  icon={<Scan />}
+                  label="Vacunas"
+                  color="bg-rose-50 dark:bg-rose-900/20 text-rose-500"
+                  onClick={() => { setActiveTab('health'); setProfileSubTab('medical'); }}
+                />
+                <AtajoIcon
+                  icon={<PhoneCall />}
+                  label="Urgencia"
+                  color="bg-amber-50 dark:bg-amber-900/20 text-amber-500"
+                  onClick={() => navigateTo('urgencia')}
+                />
+                <AtajoIcon
+                  icon={<Utensils />}
+                  label="Dieta"
+                  color="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500"
+                  onClick={() => navigateTo('dieta')}
+                />
               </div>
             </section>
 
@@ -482,8 +484,10 @@ const App: React.FC = () => {
               const updatedPets = pets.map(p => p.id === updatedPet.id ? updatedPet : p);
               setPets(updatedPets);
             }}
-            onOpenDiet={() => setActiveTab('dieta')}
+            onOpenDiet={() => navigateTo('dieta')}
             pets={pets}
+            onUpdateAppointment={handleUpdateAppointment}
+            onDeleteAppointment={handleDeleteAppointment}
           />
         );
       default: return null;
@@ -521,20 +525,21 @@ const App: React.FC = () => {
             <button onClick={() => setSelectedMission(null)} className="absolute top-6 right-6 text-slate-300 hover:text-secondary transition-colors">
               <X className="w-6 h-6" />
             </button>
-            <div className="w-16 h-16 bg-primary/10 text-primary rounded-3xl flex items-center justify-center mb-6">
-              <Shield className="w-8 h-8" />
+            <div className={`w-16 h-16 rounded-3xl flex items-center justify-center mb-6 ${selectedMission.typeLabel === 'Urgente' ? 'bg-rose-100 text-rose-500' : selectedMission.type === 'appointment' ? 'bg-indigo-100 text-indigo-500' : 'bg-primary/10 text-primary'}`}>
+              {selectedMission.type === 'vaccine' ? <Syringe className="w-8 h-8" /> : <Calendar className="w-8 h-8" />}
             </div>
             <h3 className="text-2xl font-black text-secondary dark:text-white mb-2">{selectedMission.title}</h3>
-            <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-8">{selectedMission.message}</p>
-            <button 
-              onClick={() => {
-                setSelectedMission(null);
-                setActiveTab('search');
-              }}
-              className="w-full bg-primary text-white font-black py-4 rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+            <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-6">{selectedMission.description}</p>
+            <button
+              onClick={() => { setSelectedMission(null); setActiveTab('search'); }}
+              className="w-full bg-primary text-white font-black py-3 rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all mb-4"
             >
               Agendar Cita
             </button>
+            <CompletionSlider onComplete={() => {
+              setCompletedMissions(prev => [...prev, selectedMission.id]);
+              setSelectedMission(null);
+            }} />
           </div>
         </div>
       )}
@@ -700,33 +705,115 @@ const HistoryItem = ({ date, doctor, reason, status }: any) => (
   </div>
 );
 
-const DietPlanView = ({ onBack }: any) => (
-  <div className="space-y-6 pb-10 animate-in fade-in duration-500">
-    <button onClick={onBack} className="flex items-center gap-2 text-primary font-black uppercase text-[10px] tracking-widest mb-4">
-      <ChevronRight className="w-4 h-4 rotate-180" /> Volver
-    </button>
-    <div className="bg-emerald-500 p-8 rounded-5xl text-white shadow-lg">
-       <h2 className="text-3xl font-black">Plan de Dieta</h2>
-       <p className="text-white/60 text-xs font-medium mt-1">Recomendado para Cocker Spaniel Senior</p>
-    </div>
-    <div className="space-y-4">
-      <DietCard time="Mañana (08:00)" portion="120g" type="Pienso Senior Articulaciones" />
-      <DietCard time="Tarde (14:00)" portion="Snack" type="Manzana o Zanahoria" />
-      <DietCard time="Noche (20:00)" portion="120g" type="Pienso Senior Articulaciones" />
-    </div>
-  </div>
-);
+interface DietItem { id: string; time: string; type: string; portion: string; }
 
-const DietCard = ({ time, portion, type }: any) => (
-  <div className="bg-white dark:bg-darkCard p-6 rounded-4xl border border-white dark:border-slate-800 shadow-sm flex gap-5 items-center">
-    <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-3xl flex items-center justify-center shadow-inner"><Utensils className="w-6 h-6" /></div>
-    <div>
-      <span className="text-[10px] font-black text-primary uppercase tracking-widest">{time}</span>
-      <h4 className="font-black text-secondary dark:text-slate-200 text-base">{type}</h4>
-      <p className="text-xs text-slate-400 font-medium">{portion}</p>
+const DietPlanView = ({ onBack }: any) => {
+  const [items, setItems] = useState<DietItem[]>([
+    { id: '1', time: 'Mañana (08:00)', portion: '120g', type: 'Pienso Senior Articulaciones' },
+    { id: '2', time: 'Tarde (14:00)', portion: 'Snack', type: 'Manzana o Zanahoria' },
+    { id: '3', time: 'Noche (20:00)', portion: '120g', type: 'Pienso Senior Articulaciones' },
+  ]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ time: '', type: '', portion: '' });
+  const [showAdd, setShowAdd] = useState(false);
+  const [addForm, setAddForm] = useState({ time: '', type: '', portion: '' });
+
+  const startEdit = (item: DietItem) => {
+    setEditingId(item.id);
+    setEditForm({ time: item.time, type: item.type, portion: item.portion });
+  };
+
+  const saveEdit = (id: string) => {
+    setItems(items.map(i => i.id === id ? { ...i, ...editForm } : i));
+    setEditingId(null);
+  };
+
+  const deleteItem = (id: string) => setItems(items.filter(i => i.id !== id));
+
+  const addItem = () => {
+    if (!addForm.time || !addForm.type) return;
+    setItems([...items, { id: Date.now().toString(), ...addForm }]);
+    setAddForm({ time: '', type: '', portion: '' });
+    setShowAdd(false);
+  };
+
+  return (
+    <div className="space-y-6 pb-10 animate-in fade-in duration-500">
+      <button onClick={onBack} className="flex items-center gap-2 text-primary font-black uppercase text-[10px] tracking-widest mb-4">
+        <ChevronRight className="w-4 h-4 rotate-180" /> Volver
+      </button>
+      <div className="bg-emerald-500 p-8 rounded-5xl text-white shadow-lg relative">
+        <h2 className="text-3xl font-black">Plan de Dieta</h2>
+        <p className="text-white/60 text-xs font-medium mt-1">Recomendado para Cocker Spaniel Senior</p>
+        <button
+          onClick={() => setShowAdd(true)}
+          className="absolute top-8 right-8 bg-white text-emerald-500 p-3 rounded-2xl shadow-lg hover:scale-105 transition-transform"
+        >
+          <Plus className="w-5 h-5" />
+        </button>
+      </div>
+      <div className="space-y-4">
+        {items.map(item => (
+          editingId === item.id ? (
+            <div key={item.id} className="bg-white dark:bg-darkCard p-5 rounded-4xl border border-emerald-200 dark:border-emerald-800 shadow-sm space-y-3">
+              <input value={editForm.time} onChange={e => setEditForm(f => ({ ...f, time: e.target.value }))}
+                className="w-full p-3 bg-crema dark:bg-slate-800 rounded-2xl text-sm font-bold text-secondary dark:text-white border-none" placeholder="Horario" />
+              <input value={editForm.type} onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}
+                className="w-full p-3 bg-crema dark:bg-slate-800 rounded-2xl text-sm font-bold text-secondary dark:text-white border-none" placeholder="Alimento" />
+              <input value={editForm.portion} onChange={e => setEditForm(f => ({ ...f, portion: e.target.value }))}
+                className="w-full p-3 bg-crema dark:bg-slate-800 rounded-2xl text-sm font-bold text-secondary dark:text-white border-none" placeholder="Porción" />
+              <div className="flex gap-2">
+                <button onClick={() => saveEdit(item.id)} className="flex-1 bg-emerald-500 text-white font-black py-2.5 rounded-2xl text-sm hover:bg-emerald-600 transition-colors">Guardar</button>
+                <button onClick={() => setEditingId(null)} className="flex-1 bg-crema dark:bg-slate-800 text-slate-500 font-black py-2.5 rounded-2xl text-sm">Cancelar</button>
+              </div>
+            </div>
+          ) : (
+            <div key={item.id} className="bg-white dark:bg-darkCard p-6 rounded-4xl border border-white dark:border-slate-800 shadow-sm flex gap-5 items-center group">
+              <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-3xl flex items-center justify-center shadow-inner shrink-0">
+                <Utensils className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] font-black text-primary uppercase tracking-widest">{item.time}</span>
+                <h4 className="font-black text-secondary dark:text-slate-200 text-base truncate">{item.type}</h4>
+                <p className="text-xs text-slate-400 font-medium">{item.portion}</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button onClick={() => startEdit(item)} className="p-2.5 bg-slate-50 dark:bg-slate-800 text-slate-400 rounded-2xl hover:bg-emerald-50 hover:text-emerald-500 transition-all">
+                  <Settings2 className="w-4 h-4" />
+                </button>
+                <button onClick={() => deleteItem(item.id)} className="p-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-400 rounded-2xl hover:bg-rose-500 hover:text-white transition-all">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )
+        ))}
+      </div>
+
+      {showAdd && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-secondary/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-darkCard w-full max-w-sm p-8 rounded-5xl shadow-2xl border border-white dark:border-slate-800 relative">
+            <button onClick={() => setShowAdd(false)} className="absolute top-6 right-6 text-slate-300 hover:text-secondary transition-colors">
+              <X className="w-6 h-6" />
+            </button>
+            <h3 className="text-2xl font-black text-secondary dark:text-white mb-6">Nueva Comida</h3>
+            <div className="space-y-4">
+              <input value={addForm.time} onChange={e => setAddForm(f => ({ ...f, time: e.target.value }))}
+                className="w-full p-4 bg-crema dark:bg-slate-800 rounded-2xl font-bold text-secondary dark:text-white border-none" placeholder="Horario (ej. Mañana 08:00)" />
+              <input value={addForm.type} onChange={e => setAddForm(f => ({ ...f, type: e.target.value }))}
+                className="w-full p-4 bg-crema dark:bg-slate-800 rounded-2xl font-bold text-secondary dark:text-white border-none" placeholder="Alimento" />
+              <input value={addForm.portion} onChange={e => setAddForm(f => ({ ...f, portion: e.target.value }))}
+                className="w-full p-4 bg-crema dark:bg-slate-800 rounded-2xl font-bold text-secondary dark:text-white border-none" placeholder="Porción (ej. 120g)" />
+              <button onClick={addItem} className="w-full bg-emerald-500 text-white font-black py-4 rounded-2xl shadow-lg hover:scale-[1.02] active:scale-95 transition-all mt-2">
+                Agregar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 const EmergencyView = ({ onBack }: any) => {
   const [contacts, setContacts] = useState([
@@ -849,8 +936,13 @@ const EmergencyItem = ({ name, address, phone, onEdit, onDelete }: any) => (
   </div>
 );
 
-const PendingTaskCard = ({ icon, title, date, type, onClick }: any) => (
-  <div 
+const PendingTaskCard = ({ icon, title, date, type, onClick }: any) => {
+  const tagStyle =
+    type === 'Urgente' ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400' :
+    type === 'Cita'    ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' :
+                         'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+  return (
+  <div
     onClick={onClick}
     className="bg-white dark:bg-darkCard min-w-[190px] p-6 rounded-4xl border border-white dark:border-slate-800 shadow-sm hover:shadow-lg transition-all cursor-pointer group shrink-0"
   >
@@ -858,30 +950,80 @@ const PendingTaskCard = ({ icon, title, date, type, onClick }: any) => (
       <div className="w-11 h-11 bg-crema dark:bg-slate-700 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
         {icon}
       </div>
-      <span className="text-[9px] font-black text-slate-300 dark:text-slate-500 uppercase tracking-widest">{type}</span>
+      <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${tagStyle}`}>{type}</span>
     </div>
     <h4 className="font-extrabold text-secondary dark:text-slate-200 text-sm mb-1">{title}</h4>
     <p className="text-primary text-[11px] font-black">{date}</p>
   </div>
+  );
+};
+
+const AtajoIcon = ({ icon, label, color, onClick }: any) => (
+  <button onClick={onClick} className="flex flex-col items-center gap-2 group w-full">
+    <div className={`w-14 h-14 ${color} rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 group-active:scale-95 transition-all`}>
+      {React.cloneElement(icon as React.ReactElement<any>, { className: 'w-6 h-6' })}
+    </div>
+    <span className="text-[10px] font-black text-secondary dark:text-slate-400 uppercase tracking-tight">{label}</span>
+  </button>
 );
 
-const AtajoIcon = ({ icon, label, color, onClick, onRemove }: any) => (
-  <div className="relative">
-    {onRemove && (
-      <button
-        onClick={(e) => { e.stopPropagation(); onRemove(); }}
-        className="absolute -top-1 -right-1 z-10 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-rose-600 transition-colors"
+const CompletionSlider = ({ onComplete }: { onComplete: () => void }) => {
+  const [progress, setProgress] = useState(0);
+  const [completed, setCompleted] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging.current || !containerRef.current || completed) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    setProgress(pct);
+    if (pct >= 85) {
+      setCompleted(true);
+      setProgress(100);
+      isDragging.current = false;
+      setTimeout(onComplete, 900);
+    }
+  };
+
+  const handlePointerUp = () => {
+    isDragging.current = false;
+    if (!completed) setProgress(0);
+  };
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-center text-slate-400 font-bold">Desliza si esta misión ya fue completada</p>
+      <div
+        ref={containerRef}
+        className="relative h-14 bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden select-none cursor-pointer"
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
       >
-        <X className="w-3 h-3" />
-      </button>
-    )}
-    <button onClick={onClick} className="flex flex-col items-center gap-2 group w-full">
-      <div className={`w-14 h-14 ${color} rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 group-active:scale-95 transition-all`}>
-        {React.cloneElement(icon as React.ReactElement<any>, { className: 'w-6 h-6' })}
+        <div className="absolute inset-y-0 left-0 bg-emerald-400/30 rounded-2xl transition-all duration-75" style={{ width: `${progress}%` }} />
+        <div
+          className={`absolute top-1/2 -translate-y-1/2 w-12 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all duration-75 ${completed ? 'bg-emerald-500' : 'bg-secondary dark:bg-slate-600'}`}
+          style={{ left: `max(4px, calc(${progress}% - 48px))` }}
+          onPointerDown={(e) => { isDragging.current = true; e.currentTarget.setPointerCapture(e.pointerId); }}
+        >
+          {completed
+            ? <Heart className="w-5 h-5 text-white fill-white animate-bounce" />
+            : <ChevronRight className="w-5 h-5 text-white" />}
+        </div>
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300 dark:text-slate-500 uppercase tracking-widest pointer-events-none">
+          {completed ? '¡Listo!' : 'Desliza →'}
+        </span>
       </div>
-      <span className="text-[10px] font-black text-secondary dark:text-slate-400 uppercase tracking-tight">{label}</span>
-    </button>
-  </div>
-);
+      {completed && (
+        <div className="flex justify-center gap-1 animate-in fade-in duration-300">
+          {[...Array(3)].map((_, i) => (
+            <Heart key={i} className="w-5 h-5 text-rose-400 fill-rose-400 animate-bounce" style={{ animationDelay: `${i * 100}ms` }} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default App;
