@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Layout } from './components/Layout';
-import { HealthDashboard } from './components/HealthDashboard';
 import { VetSearch } from './components/VetSearch';
 import { SocialFeed } from './components/SocialFeed';
 import { PetProfile } from './components/PetProfile';
@@ -96,7 +95,6 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [profileSubTab, setProfileSubTab] = useState<'info' | 'medical' | 'docs' | 'appointments'>('info');
   const [darkMode, setDarkMode] = useState(false);
-  const [showAI, setShowAI] = useState(true);
   const [pets, setPets] = useState<Pet[]>(initialPets);
   const [selectedPetId, setSelectedPetId] = useState(initialPets[0].id);
   const [showPlusMenu, setShowPlusMenu] = useState(false);
@@ -247,8 +245,6 @@ const App: React.FC = () => {
         onLogout={handleLogout} 
         darkMode={darkMode} 
         setDarkMode={setDarkMode} 
-        showAI={showAI} 
-        setShowAI={setShowAI}
         onBack={() => setActiveTab('home')}
       />
     );
@@ -467,23 +463,6 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            {showAI && (
-              <section className="space-y-6 pb-20">
-                 <div className="px-2 flex justify-between items-end">
-                   <div>
-                     <h3 className="text-xl font-extrabold text-secondary dark:text-slate-100">IA Recommendations</h3>
-                     <p className="text-slate-400 text-xs font-medium">Basado en {currentPet.breed} de {currentPet.age} años</p>
-                   </div>
-                   <button 
-                    onClick={() => setActiveTab('health')}
-                    className="text-primary font-black text-xs uppercase tracking-widest hover:underline flex items-center gap-1"
-                   >
-                     Ver más <ChevronRight className="w-3 h-3" />
-                   </button>
-                 </div>
-                 <HealthDashboard pet={currentPet} limit={2} />
-              </section>
-            )}
           </div>
         );
       case 'search': return <VetSearch onAddAppointment={addAppointment} onOpenEmergency={() => navigateTo('urgencia')} pets={pets} selectedPetId={selectedPetId} />;
@@ -507,7 +486,7 @@ const App: React.FC = () => {
             pets={pets}
           />
         );
-      default: return <HealthDashboard pet={currentPet} />;
+      default: return null;
     }
   };
 

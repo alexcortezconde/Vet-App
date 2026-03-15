@@ -6,12 +6,11 @@ import {
   Globe, 
   Bell, 
   Shield, 
-  Moon, 
-  HelpCircle, 
+  Moon,
+  HelpCircle,
   ChevronRight,
   LogOut,
   Camera,
-  Sparkles,
   X,
   ChevronLeft
 } from 'lucide-react';
@@ -22,12 +21,10 @@ interface SettingsProps {
   onLogout: () => void;
   darkMode: boolean;
   setDarkMode: (val: boolean) => void;
-  showAI: boolean;
-  setShowAI: (val: boolean) => void;
   onBack?: () => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, darkMode, setDarkMode, showAI, setShowAI, onBack }) => {
+export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, darkMode, setDarkMode, onBack }) => {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editForm, setEditForm] = useState({
     name: user?.name || '',
@@ -148,12 +145,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
             label="Modo Oscuro" 
             toggle={darkMode}
             onToggle={() => setDarkMode(!darkMode)}
-          />
-          <SettingItem 
-            icon={<Sparkles className="text-amber-500" />} 
-            label="IA Recommendations" 
-            toggle={showAI}
-            onToggle={() => setShowAI(!showAI)}
           />
           <SettingItem 
             icon={<Globe className="text-blue-500" />} 

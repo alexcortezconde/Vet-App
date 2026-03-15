@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "c:\\Users\\alexa\\Documents\\AI Proyects\\Vet-App\\services"
+    ],
+    "allow": [
+      "Bash(npm run:*)"
+    ]
+  }
+}
