@@ -125,6 +125,7 @@ export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment, onOpenEm
         reason: bookingReason || 'Chequeo General',
         date: selectedDate,
         time: selectedTime,
+        vetName: showBooking.name,
         status: 'Confirmed'
       };
       onAddAppointment(newApp);
@@ -264,7 +265,10 @@ export const VetSearch: React.FC<VetSearchProps> = ({ onAddAppointment, onOpenEm
               className="absolute z-10 flex flex-col items-center gap-1 group"
               style={{ top: `${25 + i * 22}%`, left: `${15 + i * 25}%` }}
             >
-              <div className="relative">
+              <div
+                className="relative animate-bounce"
+                style={{ animationDuration: '2.2s', animationDelay: `${i * 0.35}s` }}
+              >
                 <img src={v.imageUrl} className="w-12 h-12 rounded-2xl object-cover border-2 border-white shadow-xl group-hover:scale-110 transition-transform" alt={v.name} />
                 <div className="absolute -bottom-1 -right-1 bg-primary text-white text-[8px] font-black px-1 rounded-md shadow-sm">★{v.rating}</div>
               </div>

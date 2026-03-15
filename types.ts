@@ -22,6 +22,7 @@ export interface Appointment {
   reason: string;
   time: string;
   date: string;
+  vetName?: string;
   status: 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled';
 }
 

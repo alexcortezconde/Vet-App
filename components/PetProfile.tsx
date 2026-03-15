@@ -83,6 +83,7 @@ export const PetProfile: React.FC<PetProfileProps> = ({
   const [showVaxEditNextDue, setShowVaxEditNextDue] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [showApptCal, setShowApptCal] = useState(false);
+  const [isRescheduling, setIsRescheduling] = useState(false);
   const [editingInfo, setEditingInfo] = useState(false);
   const [editForm, setEditForm] = useState({
     name: pet.name,
@@ -382,29 +383,21 @@ export const PetProfile: React.FC<PetProfileProps> = ({
             <div className="space-y-4">
               {appointments.filter(a => a.petName === pet.name).length > 0 ? (
                 appointments.filter(a => a.petName === pet.name).map(app => (
-                  <div key={app.id} className="bg-white dark:bg-darkCard p-5 rounded-4xl border border-white dark:border-slate-800 shadow-sm flex items-center gap-3">
+                  <button
+                    key={app.id}
+                    onClick={() => { setEditingAppointment(app); setIsRescheduling(false); }}
+                    className="w-full bg-white dark:bg-darkCard p-5 rounded-4xl border border-white dark:border-slate-800 shadow-sm flex items-center gap-3 hover:shadow-md transition-all text-left"
+                  >
                     <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-2xl flex items-center justify-center shrink-0">
                       <Calendar className="w-6 h-6" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-black text-secondary dark:text-slate-200 text-sm truncate">{app.reason}</h4>
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{app.date} • {app.time}</span>
+                      {app.vetName && <p className="text-[10px] text-primary font-bold mt-0.5">{app.vetName}</p>}
                     </div>
-                    <div className="flex gap-2 shrink-0">
-                      <button
-                        onClick={() => setEditingAppointment(app)}
-                        className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-2xl hover:bg-indigo-500 hover:text-white transition-all"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => onDeleteAppointment?.(app.id)}
-                        className="p-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-400 rounded-2xl hover:bg-rose-500 hover:text-white transition-all"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
+                    <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+                  </button>
                 ))
               ) : (
                 <div className="text-center py-10 bg-white dark:bg-darkCard rounded-4xl border-2 border-dashed border-slate-100 dark:border-slate-800">
@@ -565,62 +558,107 @@ export const PetProfile: React.FC<PetProfileProps> = ({
         </div>
       )}
 
-      {/* Modal Editar Cita */}
+      {/* Modal Detalle / Reagendar Cita */}
       {editingAppointment && (
         <div className="fixed inset-0 z-[200] bg-secondary/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
           <div className="bg-white dark:bg-darkCard w-full max-w-md rounded-t-5xl sm:rounded-5xl shadow-2xl overflow-y-auto max-h-[90vh] animate-in slide-in-from-bottom-10">
             <div className="p-8 space-y-5">
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-black text-secondary dark:text-slate-100">Editar Cita</h3>
-                <button onClick={() => { setEditingAppointment(null); setShowApptCal(false); }} className="p-2 bg-crema dark:bg-slate-700 rounded-xl text-slate-400"><X /></button>
-              </div>
-              <div className="space-y-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Motivo</span>
-                <input
-                  value={editingAppointment.reason}
-                  onChange={e => setEditingAppointment(a => a ? { ...a, reason: e.target.value } : a)}
-                  className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200 focus:outline-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</span>
+                <h3 className="text-xl font-black text-secondary dark:text-slate-100">
+                  {isRescheduling ? 'Reagendar Cita' : 'Detalle de Cita'}
+                </h3>
                 <button
-                  onClick={() => setShowApptCal(v => !v)}
-                  className="w-full flex items-center gap-3 p-4 bg-crema dark:bg-slate-800 rounded-3xl font-bold text-secondary dark:text-slate-200 text-sm"
+                  onClick={() => { setEditingAppointment(null); setShowApptCal(false); setIsRescheduling(false); }}
+                  className="p-2 bg-crema dark:bg-slate-700 rounded-xl text-slate-400"
                 >
-                  <Calendar className="w-4 h-4 text-primary" />
-                  {editingAppointment.date}
-                </button>
-                {showApptCal && (
-                  <CalendarPicker
-                    value={editingAppointment.date}
-                    onChange={(date) => { setEditingAppointment(a => a ? { ...a, date } : a); setShowApptCal(false); }}
-                  />
-                )}
-              </div>
-              <div className="space-y-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Hora</span>
-                <input
-                  type="time"
-                  value={editingAppointment.time}
-                  onChange={e => setEditingAppointment(a => a ? { ...a, time: e.target.value } : a)}
-                  className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200 focus:outline-none"
-                />
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { onDeleteAppointment?.(editingAppointment.id); setEditingAppointment(null); }}
-                  className="flex-1 py-4 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all"
-                >
-                  Cancelar Cita
-                </button>
-                <button
-                  onClick={handleSaveAppointmentEdit}
-                  className="flex-1 py-4 bg-indigo-500 text-white rounded-3xl font-black text-xs uppercase tracking-widest shadow-lg"
-                >
-                  Reagendar
+                  <X />
                 </button>
               </div>
+
+              {!isRescheduling ? (
+                /* Vista de detalle */
+                <div className="space-y-3">
+                  <div className="bg-crema dark:bg-slate-800 rounded-3xl p-5 space-y-4">
+                    <div>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Motivo</span>
+                      <p className="font-black text-secondary dark:text-slate-100 mt-1">{editingAppointment.reason}</p>
+                    </div>
+                    <div className="flex gap-6">
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha</span>
+                        <p className="font-bold text-secondary dark:text-slate-200 text-sm mt-1">{editingAppointment.date}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Horario</span>
+                        <p className="font-bold text-secondary dark:text-slate-200 text-sm mt-1">{editingAppointment.time}</p>
+                      </div>
+                    </div>
+                    {editingAppointment.vetName && (
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Doctor</span>
+                        <p className="font-bold text-primary text-sm mt-1">{editingAppointment.vetName}</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => { onDeleteAppointment?.(editingAppointment.id); setEditingAppointment(null); }}
+                      className="flex-1 py-4 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all"
+                    >
+                      Cancelar Cita
+                    </button>
+                    <button
+                      onClick={() => setIsRescheduling(true)}
+                      className="flex-1 py-4 bg-indigo-500 text-white rounded-3xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-indigo-600 transition-all"
+                    >
+                      Reagendar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Vista de reagendar */
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nueva Fecha</span>
+                    <button
+                      onClick={() => setShowApptCal(v => !v)}
+                      className="w-full flex items-center gap-3 p-4 bg-crema dark:bg-slate-800 rounded-3xl font-bold text-secondary dark:text-slate-200 text-sm"
+                    >
+                      <Calendar className="w-4 h-4 text-primary" />
+                      {editingAppointment.date}
+                    </button>
+                    {showApptCal && (
+                      <CalendarPicker
+                        value={editingAppointment.date}
+                        onChange={(date) => { setEditingAppointment(a => a ? { ...a, date } : a); setShowApptCal(false); }}
+                      />
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nuevo Horario</span>
+                    <input
+                      type="time"
+                      value={editingAppointment.time}
+                      onChange={e => setEditingAppointment(a => a ? { ...a, time: e.target.value } : a)}
+                      className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl border-none font-bold text-secondary dark:text-slate-200 focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => { setIsRescheduling(false); setShowApptCal(false); }}
+                      className="flex-1 py-4 bg-crema dark:bg-slate-700 text-slate-500 dark:text-slate-300 rounded-3xl font-black text-xs uppercase tracking-widest"
+                    >
+                      Atrás
+                    </button>
+                    <button
+                      onClick={() => { handleSaveAppointmentEdit(); setIsRescheduling(false); }}
+                      className="flex-1 py-4 bg-indigo-500 text-white rounded-3xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-indigo-600 transition-all"
+                    >
+                      Confirmar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
