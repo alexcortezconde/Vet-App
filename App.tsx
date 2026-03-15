@@ -28,7 +28,7 @@ const initialPets: Pet[] = [
     age: 9,
     sex: 'Male',
     weight: 12.8,
-    imageUrl: 'https://images.unsplash.com/photo-1591768575198-88dac53fbd0a?auto=format&fit=crop&q=80&w=800',
+    imageUrl: 'https://images.unsplash.com/photo-1641221510945-e6bc5dc7f5d0?q=80&w=735&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
     medicalHistorySummary: 'Odi is a healthy adult Cocker Spaniel with occasional joint sensitivity.',
     vaccines: [
       { name: 'Rabia', date: '2025-12-01', nextDue: '2026-12-01' },
@@ -75,7 +75,7 @@ const initialPets: Pet[] = [
     age: 15,
     sex: 'Other',
     weight: 2.5,
-    imageUrl: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&q=80&w=800',
+    imageUrl: 'https://plus.unsplash.com/premium_photo-1724311824020-d5aa35632c81?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
     medicalHistorySummary: 'Tortu está en estado preventivo, requiere chequeo de caparazón.',
     vaccines: [],
     deworming: {
