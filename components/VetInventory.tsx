@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { InventoryItem } from '../types';
+import { useLang } from '../context/LanguageContext';
+import { translations } from '../services/i18n';
 import {
   Package, AlertTriangle, Plus, ArrowUpRight, X,
   Minus, ShoppingCart, Edit2, Trash2, Tag, Calendar, Building2
@@ -14,11 +16,15 @@ interface Props {
 const BLANK = { name: '', category: '', description: '', supplier: '', unitPrice: '', minThreshold: '5', expiryDate: '' };
 
 export const VetInventory: React.FC<Props> = ({ inventory, onUpdateInventory }) => {
+  const { lang } = useLang();
+  const T = translations[lang];
+
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [orderQty, setOrderQty] = useState(10);
   const [showAdd, setShowAdd] = useState(false);
   const [newForm, setNewForm] = useState(BLANK);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<InventoryItem | null>(null);
 
   const lowStockItems = inventory.filter(i => i.stock <= i.minThreshold);
 
@@ -54,8 +60,14 @@ export const VetInventory: React.FC<Props> = ({ inventory, onUpdateInventory }) 
     setSelectedItem(null);
   };
 
-  const handleDelete = (id: string) => {
-    onUpdateInventory(inventory.filter(i => i.id !== id));
+  const handleDelete = (item: InventoryItem) => {
+    setConfirmDelete(item);
+  };
+
+  const confirmDeleteAction = () => {
+    if (!confirmDelete) return;
+    onUpdateInventory(inventory.filter(i => i.id !== confirmDelete.id));
+    setConfirmDelete(null);
     setSelectedItem(null);
   };
 
@@ -63,8 +75,8 @@ export const VetInventory: React.FC<Props> = ({ inventory, onUpdateInventory }) 
     <div className="space-y-6 pb-10 animate-in fade-in duration-700">
       <div className="flex justify-between items-center px-2">
         <div>
-          <h2 className="text-2xl font-black text-secondary dark:text-slate-100">Inventario</h2>
-          <p className="text-xs text-slate-400 font-medium">{inventory.length} productos registrados</p>
+          <h2 className="text-2xl font-black text-secondary dark:text-slate-100">{T.invTitle}</h2>
+          <p className="text-xs text-slate-400 font-medium">{inventory.length} {T.invSub}</p>
         </div>
         <button
           onClick={() => setShowAdd(true)}
@@ -81,7 +93,7 @@ export const VetInventory: React.FC<Props> = ({ inventory, onUpdateInventory }) 
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="font-black text-rose-600 dark:text-rose-400 text-sm">{lowStockItems.length} producto{lowStockItems.length>1?'s':''} con stock crítico</h4>
+            <h4 className="font-black text-rose-600 dark:text-rose-400 text-sm">{lowStockItems.length} {T.invCritical}</h4>
             <p className="text-xs text-rose-500/70 dark:text-rose-500/50 font-medium mt-0.5 leading-relaxed">
               {lowStockItems.map(i => i.name).join(', ')}
             </p>
@@ -135,7 +147,7 @@ export const VetInventory: React.FC<Props> = ({ inventory, onUpdateInventory }) 
               </div>
 
               <div>
-                <span className="text-[10px] font-black text-primary uppercase tracking-widest">{selectedItem.category || 'Producto'}</span>
+                <span className="text-[10px] font-black text-primary uppercase tracking-widest">{selectedItem.category || T.invCategory}</span>
                 <h3 className="text-2xl font-black text-secondary dark:text-slate-100 mt-1">{selectedItem.name}</h3>
                 {selectedItem.description && <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-2 leading-relaxed">{selectedItem.description}</p>}
               </div>
@@ -143,12 +155,12 @@ export const VetInventory: React.FC<Props> = ({ inventory, onUpdateInventory }) 
               {/* Details grid */}
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { icon: <Package className="w-4 h-4" />,   label: 'Stock Actual',  value: `${selectedItem.stock} uds` },
-                  { icon: <AlertTriangle className="w-4 h-4" />, label: 'Mínimo',    value: `${selectedItem.minThreshold} uds` },
-                  { icon: <Tag className="w-4 h-4" />,        label: 'Precio Unitario', value: `$${selectedItem.unitPrice}` },
-                  { icon: <Building2 className="w-4 h-4" />,  label: 'Proveedor',   value: selectedItem.supplier || '—' },
-                  { icon: <Calendar className="w-4 h-4" />,   label: 'Caducidad',   value: selectedItem.expiryDate || '—' },
-                  { icon: <Tag className="w-4 h-4" />,        label: 'Valor Total',  value: `$${selectedItem.stock * selectedItem.unitPrice}` },
+                  { icon: <Package className="w-4 h-4" />,       label: T.invCurrentStock, value: `${selectedItem.stock} uds`              },
+                  { icon: <AlertTriangle className="w-4 h-4" />, label: T.invMinThreshold, value: `${selectedItem.minThreshold} uds`        },
+                  { icon: <Tag className="w-4 h-4" />,           label: T.invUnitPrice,    value: `$${selectedItem.unitPrice}`              },
+                  { icon: <Building2 className="w-4 h-4" />,     label: T.invSupplier,     value: selectedItem.supplier   || '—'           },
+                  { icon: <Calendar className="w-4 h-4" />,      label: T.invExpiry,       value: selectedItem.expiryDate || '—'           },
+                  { icon: <Tag className="w-4 h-4" />,           label: T.invTotalValue,   value: `$${selectedItem.stock * selectedItem.unitPrice}` },
                 ].map(({ icon, label, value }) => (
                   <div key={label} className="bg-white dark:bg-darkCard p-4 rounded-3xl shadow-sm">
                     <div className="flex items-center gap-2 mb-1 text-primary">{icon}</div>
@@ -161,8 +173,8 @@ export const VetInventory: React.FC<Props> = ({ inventory, onUpdateInventory }) 
               {/* Order section */}
               <div className="bg-white dark:bg-darkCard p-6 rounded-4xl border border-white dark:border-slate-800 shadow-sm space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cantidad a Pedir</span>
-                  <span className="text-sm font-black text-secondary dark:text-slate-200">Total: ${orderQty * selectedItem.unitPrice}</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.invOrderQty}</span>
+                  <span className="text-sm font-black text-secondary dark:text-slate-200">{T.invTotal}: ${orderQty * selectedItem.unitPrice}</span>
                 </div>
                 <div className="flex items-center justify-center gap-8 py-2">
                   <button onClick={() => setOrderQty(q => Math.max(1, q - 1))} className="w-12 h-12 bg-crema dark:bg-slate-700 rounded-2xl flex items-center justify-center shadow-inner">
@@ -176,15 +188,15 @@ export const VetInventory: React.FC<Props> = ({ inventory, onUpdateInventory }) 
               </div>
 
               <button onClick={handleOrder} className="w-full py-5 bg-secondary dark:bg-slate-700 text-white rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-secondary/10 hover:bg-primary transition-all">
-                Recibir Pedido (+{orderQty} uds)
+                {T.invReceive} (+{orderQty} uds)
               </button>
 
               <div className="grid grid-cols-2 gap-3">
                 <button onClick={() => setEditItem(selectedItem)} className="py-4 bg-white dark:bg-darkCard text-secondary dark:text-slate-200 rounded-3xl font-black text-sm flex items-center justify-center gap-2 hover:bg-primary hover:text-white transition-all shadow-sm">
-                  <Edit2 className="w-4 h-4" /> Editar
+                  <Edit2 className="w-4 h-4" /> {T.edit}
                 </button>
-                <button onClick={() => handleDelete(selectedItem.id)} className="py-4 bg-white dark:bg-darkCard text-rose-500 rounded-3xl font-black text-sm flex items-center justify-center gap-2 hover:bg-rose-500 hover:text-white transition-all shadow-sm">
-                  <Trash2 className="w-4 h-4" /> Eliminar
+                <button onClick={() => handleDelete(selectedItem)} className="py-4 bg-white dark:bg-darkCard text-rose-500 rounded-3xl font-black text-sm flex items-center justify-center gap-2 hover:bg-rose-500 hover:text-white transition-all shadow-sm">
+                  <Trash2 className="w-4 h-4" /> {T.delete}
                 </button>
               </div>
             </div>
@@ -195,54 +207,84 @@ export const VetInventory: React.FC<Props> = ({ inventory, onUpdateInventory }) 
       {/* Edit Modal */}
       {editItem && (
         <FormModal
-          title={`Editar — ${editItem.name}`}
+          title={`${T.edit} — ${editItem.name}`}
           onClose={() => setEditItem(null)}
           onSubmit={handleSaveEdit}
-          submitLabel="Guardar Cambios"
+          submitLabel={T.invSaveBtn}
         >
-          <ItemForm form={editItem} setForm={v => setEditItem(v as InventoryItem)} />
+          <ItemForm form={editItem} setForm={v => setEditItem(v as InventoryItem)} T={T} />
         </FormModal>
       )}
 
       {/* Add Modal */}
       {showAdd && (
         <FormModal
-          title="Agregar Medicamento"
+          title={T.invAddTitle}
           onClose={() => { setShowAdd(false); setNewForm(BLANK); }}
           onSubmit={handleAdd}
-          submitLabel="Agregar al Inventario"
+          submitLabel={T.invAddBtn}
           disabled={!newForm.name}
         >
-          <ItemForm form={newForm} setForm={v => setNewForm(v as typeof BLANK)} isNew />
+          <ItemForm form={newForm} setForm={v => setNewForm(v as typeof BLANK)} T={T} isNew />
         </FormModal>
+      )}
+
+      {/* Confirm Delete */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-[400] bg-secondary/50 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-darkCard w-full max-w-sm rounded-5xl shadow-2xl p-8 space-y-5">
+            <div className="w-14 h-14 bg-rose-100 rounded-4xl flex items-center justify-center mx-auto">
+              <Trash2 className="w-7 h-7 text-rose-500" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-xl font-black text-secondary dark:text-slate-100">{T.confirmDeleteTitle}</h3>
+              <p className="text-sm text-slate-400 font-medium mt-2">
+                <span className="font-black text-secondary dark:text-slate-200">{confirmDelete.name}</span> — {T.confirmDeleteMsg}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => setConfirmDelete(null)} className="py-4 bg-crema dark:bg-slate-700 text-secondary dark:text-slate-200 rounded-3xl font-black text-sm hover:bg-slate-100 transition-all">
+                {T.cancel}
+              </button>
+              <button onClick={confirmDeleteAction} className="py-4 bg-rose-500 text-white rounded-3xl font-black text-sm shadow-lg shadow-rose-200 hover:bg-rose-600 transition-all">
+                {T.delete}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
 };
 
-const ItemForm = ({ form, setForm, isNew = false }: { form: any; setForm: (v: any) => void; isNew?: boolean }) => (
-  <div className="space-y-3">
-    {[
-      { key: 'name',          label: 'Nombre *',         type: 'text'   },
-      { key: 'category',      label: 'Categoría',         type: 'text'   },
-      { key: 'description',   label: 'Descripción',       type: 'text'   },
-      { key: 'supplier',      label: 'Proveedor',          type: 'text'   },
-      { key: 'unitPrice',     label: 'Precio Unitario ($)', type: 'number' },
-      { key: 'minThreshold',  label: 'Stock Mínimo',       type: 'number' },
-      { key: 'expiryDate',    label: 'Fecha de Caducidad', type: 'date'   },
-    ].map(({ key, label, type }) => (
-      <div key={key} className="space-y-1">
-        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
-        <input
-          type={type}
-          value={form[key] ?? ''}
-          onChange={e => setForm({ ...form, [key]: e.target.value })}
-          className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl font-bold text-secondary dark:text-slate-200 outline-none"
-        />
-      </div>
-    ))}
-  </div>
-);
+type TDict = typeof translations['es'];
+
+const ItemForm = ({ form, setForm, T, isNew = false }: { form: any; setForm: (v: any) => void; T: TDict; isNew?: boolean }) => {
+  const fields = [
+    { key: 'name',         label: T.invName,        type: 'text'   },
+    { key: 'category',     label: T.invCategory,    type: 'text'   },
+    { key: 'description',  label: T.invDescription, type: 'text'   },
+    { key: 'supplier',     label: T.invSupplier,    type: 'text'   },
+    { key: 'unitPrice',    label: T.invPrice,       type: 'number' },
+    { key: 'minThreshold', label: T.invMinStock,    type: 'number' },
+    { key: 'expiryDate',   label: T.invExpiry,      type: 'date'   },
+  ];
+  return (
+    <div className="space-y-3">
+      {fields.map(({ key, label, type }) => (
+        <div key={key} className="space-y-1">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
+          <input
+            type={type}
+            value={form[key] ?? ''}
+            onChange={e => setForm({ ...form, [key]: e.target.value })}
+            className="w-full p-4 bg-crema dark:bg-slate-800 rounded-3xl font-bold text-secondary dark:text-slate-200 outline-none"
+          />
+        </div>
+      ))}
+    </div>
+  );
+};
 
 const FormModal = ({ title, onClose, onSubmit, submitLabel, disabled = false, children }: any) => (
   <div className="fixed inset-0 z-[300] bg-secondary/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-300">

@@ -1,6 +1,8 @@
 
 import React, { useState, useRef } from 'react';
 import { User as UserType } from '../types';
+import { useLang } from '../context/LanguageContext';
+import { translations } from '../services/i18n';
 import {
   User as UserIcon,
   Globe,
@@ -31,6 +33,9 @@ interface SettingsProps {
 }
 
 export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, darkMode, setDarkMode, onBack }) => {
+  const { lang, setLang } = useLang();
+  const T = translations[lang];
+
   const [showEditProfile, setShowEditProfile]   = useState(false);
   const [showPassword,    setShowPassword]      = useState(false);
   const [showNotifs,      setShowNotifs]        = useState(false);
@@ -56,8 +61,6 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
     updates:      true,
   });
 
-  const [language, setLanguage] = useState('Español');
-
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
@@ -66,27 +69,35 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
   const handleSaveProfile = () => {
     if (user) setUser({ ...user, ...editForm });
     setShowEditProfile(false);
-    showToast('Perfil actualizado correctamente');
+    showToast(T.settingsProfileSaved);
   };
 
   const handleSavePassword = () => {
-    if (!pwForm.current) { showToast('Escribe tu contraseña actual'); return; }
-    if (pwForm.next.length < 6) { showToast('La contraseña debe tener al menos 6 caracteres'); return; }
-    if (pwForm.next !== pwForm.confirm) { showToast('Las contraseñas no coinciden'); return; }
+    if (!pwForm.current) { showToast(T.settingsPwCurrentRequired); return; }
+    if (pwForm.next.length < 6) { showToast(T.settingsPwTooShort); return; }
+    if (pwForm.next !== pwForm.confirm) { showToast(T.settingsPwMismatch); return; }
     setPwForm({ current: '', next: '', confirm: '' });
     setShowPassword(false);
-    showToast('Contraseña actualizada correctamente');
+    showToast(T.settingsPwSaved);
   };
 
   const handleSaveNotifs = () => {
     setShowNotifs(false);
-    showToast('Preferencias de notificaciones guardadas');
+    showToast(T.settingsNotifSaved);
   };
 
-  const handleSelectLanguage = (lang: string) => {
-    setLanguage(lang);
-    setShowLanguage(false);
-    showToast(`Idioma cambiado a ${lang}`);
+  const handleSelectLanguage = (optionName: string) => {
+    if (optionName === 'English') {
+      setLang('en');
+      setShowLanguage(false);
+      showToast(T.settingsLangChanged);
+    } else if (optionName === 'Español') {
+      setLang('es');
+      setShowLanguage(false);
+      showToast(T.settingsLangChanged);
+    } else {
+      showToast(T.settingsLangComingSoon);
+    }
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,10 +105,38 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
     if (!file || !user) return;
     const url = URL.createObjectURL(file);
     setUser({ ...user, imageUrl: url });
-    showToast('Foto actualizada');
+    showToast(T.settingsPhotoSaved);
   };
 
   const firstName = (user?.name || 'Usuario').split(' ')[0];
+  const displayLang = lang === 'en' ? 'English' : 'Español';
+
+  const profileFields = [
+    { key: 'name',    label: T.settingsFullName,  type: 'text'  },
+    { key: 'email',   label: T.settingsEmail,      type: 'email' },
+    { key: 'phone',   label: T.settingsTelephone,  type: 'tel'   },
+    { key: 'address', label: T.settingsAddress,    type: 'text'  },
+  ];
+
+  const pwFields = [
+    { key: 'current', label: T.settingsCurrentPw },
+    { key: 'next',    label: T.settingsNewPw      },
+    { key: 'confirm', label: T.settingsConfirmPw  },
+  ];
+
+  const notifItems = [
+    { key: 'appointments' as const, label: T.settingsNotifAppts,    sub: T.settingsNotifAptsSub    },
+    { key: 'reminders'    as const, label: T.settingsNotifReminders, sub: T.settingsNotifRemindersSub },
+    { key: 'promotions'   as const, label: T.settingsNotifPromo,     sub: T.settingsNotifPromoSub   },
+    { key: 'updates'      as const, label: T.settingsNotifUpdates,   sub: T.settingsNotifUpdatesSub },
+  ];
+
+  const helpItems = [
+    { q: T.settingsHelpQ1, a: T.settingsHelpA1 },
+    { q: T.settingsHelpQ2, a: T.settingsHelpA2 },
+    { q: T.settingsHelpQ3, a: T.settingsHelpA3 },
+    { q: T.settingsHelpQ4, a: T.settingsHelpA4 },
+  ];
 
   return (
     <div className="space-y-8 pb-10 animate-in fade-in duration-700">
@@ -113,12 +152,12 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
         {onBack && (
           <button onClick={onBack} className="flex items-center gap-2 p-3 bg-white dark:bg-darkCard rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 text-slate-400 hover:text-primary transition-colors">
             <ChevronLeft className="w-6 h-6" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Regresar</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">{T.back}</span>
           </button>
         )}
         <div>
-          <h2 className="text-2xl font-black text-secondary dark:text-slate-100">Ajustes</h2>
-          <p className="text-xs text-slate-400 font-medium">Configuración de tu cuenta y App</p>
+          <h2 className="text-2xl font-black text-secondary dark:text-slate-100">{T.settingsTitle}</h2>
+          <p className="text-xs text-slate-400 font-medium">{T.settingsSub}</p>
         </div>
       </div>
 
@@ -133,7 +172,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
           <button
             onClick={() => fileInputRef.current?.click()}
             className="absolute -bottom-1 -right-1 bg-primary text-white p-2 rounded-xl shadow-lg border-2 border-white dark:border-slate-800 hover:bg-secondary transition-colors"
-            title="Cambiar foto"
+            title={T.settingsEditProfile}
           >
             <Camera className="w-4 h-4" />
           </button>
@@ -143,26 +182,26 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
           <h3 className="text-xl font-black text-secondary dark:text-slate-200 leading-none">{firstName}</h3>
           <p className="text-xs text-slate-400 font-bold mt-1">{user?.email}</p>
           <button onClick={() => setShowEditProfile(true)} className="text-primary text-[10px] font-black uppercase tracking-widest mt-2 hover:underline">
-            Editar Perfil
+            {T.settingsEditProfile}
           </button>
         </div>
       </div>
 
       {/* Settings sections */}
       <div className="space-y-4">
-        <SettingGroup title="Preferencias">
-          <SettingItem icon={<Moon className="text-purple-500" />} label="Modo Oscuro" toggle={darkMode} onToggle={() => setDarkMode(!darkMode)} />
-          <SettingItem icon={<Globe className="text-blue-500" />}  label="Idioma" value={language} onClick={() => setShowLanguage(true)} />
+        <SettingGroup title={T.settingsPreferences}>
+          <SettingItem icon={<Moon className="text-purple-500" />} label={T.settingsDarkMode} toggle={darkMode} onToggle={() => setDarkMode(!darkMode)} />
+          <SettingItem icon={<Globe className="text-blue-500" />}  label={T.settingsLanguage} value={displayLang} onClick={() => setShowLanguage(true)} />
         </SettingGroup>
 
-        <SettingGroup title="Seguridad & Privacidad">
-          <SettingItem icon={<Shield className="text-emerald-500" />} label="Contraseña"     onClick={() => setShowPassword(true)} />
-          <SettingItem icon={<Bell className="text-amber-500" />}     label="Notificaciones" onClick={() => setShowNotifs(true)} />
+        <SettingGroup title={T.settingsSecurity}>
+          <SettingItem icon={<Shield className="text-emerald-500" />} label={T.settingsPassword}      onClick={() => setShowPassword(true)} />
+          <SettingItem icon={<Bell className="text-amber-500" />}     label={T.settingsNotifications} onClick={() => setShowNotifs(true)} />
         </SettingGroup>
 
-        <SettingGroup title="Soporte">
-          <SettingItem icon={<HelpCircle className="text-slate-400" />} label="Centro de Ayuda" onClick={() => setShowHelp(true)} />
-          <SettingItem icon={<LogOut className="text-rose-500" />} label="Salir" noChevron color="text-rose-500" onClick={onLogout} />
+        <SettingGroup title={T.settingsSupport}>
+          <SettingItem icon={<HelpCircle className="text-slate-400" />} label={T.settingsHelp}   onClick={() => setShowHelp(true)} />
+          <SettingItem icon={<LogOut className="text-rose-500" />}      label={T.settingsLogout} noChevron color="text-rose-500" onClick={onLogout} />
         </SettingGroup>
       </div>
 
@@ -172,14 +211,9 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
 
       {/* Edit Profile Modal */}
       {showEditProfile && (
-        <Modal title="Editar Perfil" onClose={() => setShowEditProfile(false)}>
+        <Modal title={T.settingsEditProfile} onClose={() => setShowEditProfile(false)}>
           <div className="space-y-4">
-            {[
-              { key: 'name',    label: 'Nombre Completo', type: 'text'  },
-              { key: 'email',   label: 'Email',            type: 'email' },
-              { key: 'phone',   label: 'Teléfono',         type: 'tel'   },
-              { key: 'address', label: 'Dirección',        type: 'text'  },
-            ].map(({ key, label, type }) => (
+            {profileFields.map(({ key, label, type }) => (
               <div key={key} className="space-y-2">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
                 <input
@@ -191,7 +225,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
               </div>
             ))}
             <button onClick={handleSaveProfile} className="w-full py-5 bg-primary text-white rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">
-              Guardar Cambios
+              {T.settingsSaveChanges}
             </button>
           </div>
         </Modal>
@@ -199,13 +233,9 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
 
       {/* Change Password Modal */}
       {showPassword && (
-        <Modal title="Cambiar Contraseña" onClose={() => setShowPassword(false)}>
+        <Modal title={T.settingsChangePassword} onClose={() => setShowPassword(false)}>
           <div className="space-y-4">
-            {[
-              { key: 'current', label: 'Contraseña Actual' },
-              { key: 'next',    label: 'Nueva Contraseña'  },
-              { key: 'confirm', label: 'Confirmar Nueva'   },
-            ].map(({ key, label }) => (
+            {pwFields.map(({ key, label }) => (
               <div key={key} className="space-y-2">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
                 <div className="flex items-center bg-crema dark:bg-slate-800 rounded-3xl px-5 gap-2">
@@ -226,7 +256,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
               </div>
             ))}
             <button onClick={handleSavePassword} className="w-full py-5 bg-primary text-white rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">
-              Actualizar Contraseña
+              {T.settingsUpdatePw}
             </button>
           </div>
         </Modal>
@@ -234,14 +264,9 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
 
       {/* Notifications Modal */}
       {showNotifs && (
-        <Modal title="Notificaciones" onClose={() => setShowNotifs(false)}>
+        <Modal title={T.settingsNotifTitle} onClose={() => setShowNotifs(false)}>
           <div className="space-y-2">
-            {([
-              { key: 'appointments', label: 'Recordatorio de Citas',   sub: 'Aviso 24h antes de cada cita' },
-              { key: 'reminders',    label: 'Recordatorios de Salud',   sub: 'Vacunas y controles próximos' },
-              { key: 'promotions',   label: 'Promociones',              sub: 'Ofertas y descuentos especiales' },
-              { key: 'updates',      label: 'Actualizaciones de App',   sub: 'Nuevas funciones y mejoras' },
-            ] as const).map(({ key, label, sub }) => (
+            {notifItems.map(({ key, label, sub }) => (
               <button key={key} onClick={() => setNotifSettings(n => ({ ...n, [key]: !n[key] }))} className="w-full flex items-center justify-between p-5 bg-crema dark:bg-slate-800 rounded-3xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all">
                 <div className="text-left">
                   <p className="font-black text-secondary dark:text-slate-200 text-sm">{label}</p>
@@ -253,7 +278,7 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
               </button>
             ))}
             <button onClick={handleSaveNotifs} className="w-full py-5 bg-primary text-white rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-primary/20 mt-2">
-              Guardar Preferencias
+              {T.settingsSavePrefs}
             </button>
           </div>
         </Modal>
@@ -261,32 +286,32 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
 
       {/* Language Modal */}
       {showLanguage && (
-        <Modal title="Seleccionar Idioma" onClose={() => setShowLanguage(false)}>
+        <Modal title={T.settingsSelectLang} onClose={() => setShowLanguage(false)}>
           <div className="space-y-3">
-            {['Español', 'English', 'Português', 'Français'].map(lang => (
-              <button
-                key={lang}
-                onClick={() => handleSelectLanguage(lang)}
-                className={`w-full py-4 rounded-3xl font-black text-sm flex items-center justify-between px-5 transition-all ${language === lang ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-crema dark:bg-slate-800 text-secondary dark:text-slate-200 hover:bg-slate-100'}`}
-              >
-                {lang}
-                {language === lang && <Check className="w-5 h-5" />}
-              </button>
-            ))}
+            {(['Español', 'English', 'Português', 'Français'] as const).map(optionName => {
+              const isActive = optionName === displayLang;
+              const isAvailable = optionName === 'Español' || optionName === 'English';
+              return (
+                <button
+                  key={optionName}
+                  onClick={() => handleSelectLanguage(optionName)}
+                  className={`w-full py-4 rounded-3xl font-black text-sm flex items-center justify-between px-5 transition-all ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/20' : isAvailable ? 'bg-crema dark:bg-slate-800 text-secondary dark:text-slate-200 hover:bg-slate-100' : 'bg-crema dark:bg-slate-800 text-slate-300 dark:text-slate-600'}`}
+                >
+                  <span>{optionName}</span>
+                  {isActive && <Check className="w-5 h-5" />}
+                  {!isAvailable && !isActive && <span className="text-[9px] font-black uppercase tracking-widest opacity-60">{T.settingsLangComingSoon}</span>}
+                </button>
+              );
+            })}
           </div>
         </Modal>
       )}
 
       {/* Help Modal */}
       {showHelp && (
-        <Modal title="Centro de Ayuda" onClose={() => setShowHelp(false)}>
+        <Modal title={T.settingsHelpTitle} onClose={() => setShowHelp(false)}>
           <div className="space-y-3">
-            {[
-              { q: '¿Cómo agendar una cita?',           a: 'Ve a la sección de búsqueda, elige un veterinario y selecciona una fecha disponible.' },
-              { q: '¿Cómo cambiar mi foto de perfil?',  a: 'En Ajustes, toca el ícono de cámara sobre tu foto de perfil.' },
-              { q: '¿Mis datos están seguros?',         a: 'Sí. Toda la información se maneja localmente y nunca se comparte sin tu consentimiento.' },
-              { q: '¿Cómo reportar un problema?',       a: 'Envíanos un mensaje desde la opción de soporte o escríbenos a soporte@pawell.app.' },
-            ].map(({ q, a }) => (
+            {helpItems.map(({ q, a }) => (
               <div key={q} className="bg-crema dark:bg-slate-800 p-5 rounded-4xl space-y-2">
                 <div className="flex items-start gap-2">
                   <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
@@ -298,8 +323,8 @@ export const Settings: React.FC<SettingsProps> = ({ user, setUser, onLogout, dar
             <div className="bg-primary/5 border border-primary/20 p-5 rounded-4xl flex items-center gap-3">
               <MessageCircle className="w-5 h-5 text-primary shrink-0" />
               <div>
-                <p className="font-black text-secondary dark:text-slate-200 text-sm">¿Necesitas más ayuda?</p>
-                <p className="text-xs text-slate-400 font-medium">soporte@pawell.app</p>
+                <p className="font-black text-secondary dark:text-slate-200 text-sm">{T.settingsNeedHelp}</p>
+                <p className="text-xs text-slate-400 font-medium">{T.settingsHelpEmail}</p>
               </div>
             </div>
           </div>

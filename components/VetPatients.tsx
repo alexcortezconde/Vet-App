@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { PatientRecord } from '../types';
+import { useLang } from '../context/LanguageContext';
+import { translations } from '../services/i18n';
 import {
   Search, Filter, History, Phone, FileText, X, Plus,
   ChevronRight, UserX, Edit2, Check, PawPrint
@@ -14,6 +16,9 @@ interface Props {
 const BLANK_NEW = { petName: '', ownerName: '', ownerPhone: '', species: '', breed: '', age: '', weight: '', medicalNotes: '' };
 
 export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => {
+  const { lang } = useLang();
+  const T = translations[lang];
+
   const [query, setQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'Active' | 'Inactive'>('all');
   const [showFilter, setShowFilter] = useState(false);
@@ -22,6 +27,7 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
   const [showAdd, setShowAdd] = useState(false);
   const [newForm, setNewForm] = useState(BLANK_NEW);
   const [editForm, setEditForm] = useState<PatientRecord | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<PatientRecord | null>(null);
 
   const filtered = patients.filter(p => {
     const q = query.toLowerCase();
@@ -66,17 +72,25 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
     setDetailPatient(updated);
   };
 
-  const handleDelete = (id: string) => {
-    onUpdatePatients(patients.filter(p => p.id !== id));
+  const handleDelete = (patient: PatientRecord) => {
+    setConfirmDelete(patient);
+  };
+
+  const confirmDeleteAction = () => {
+    if (!confirmDelete) return;
+    onUpdatePatients(patients.filter(p => p.id !== confirmDelete.id));
+    setConfirmDelete(null);
     setDetailPatient(null);
   };
+
+  const filterLabel = filterStatus === 'Active' ? T.active : T.inactive;
 
   return (
     <div className="space-y-6 pb-10 animate-in fade-in duration-700">
       <div className="flex justify-between items-center px-2">
         <div>
-          <h2 className="text-2xl font-black text-secondary dark:text-slate-100">Mis Pacientes</h2>
-          <p className="text-xs text-slate-400 font-medium">{patients.length} registros en base de datos</p>
+          <h2 className="text-2xl font-black text-secondary dark:text-slate-100">{T.patTitle}</h2>
+          <p className="text-xs text-slate-400 font-medium">{patients.length} {T.patSub}</p>
         </div>
         <button onClick={() => setShowAdd(true)} className="bg-primary text-white p-3.5 rounded-3xl shadow-xl shadow-primary/20 hover:scale-110 transition-transform">
           <Plus className="w-5 h-5" />
@@ -90,7 +104,7 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="Buscar por nombre o dueño..."
+          placeholder={T.patSearchPlaceholder}
           className="w-full pl-14 pr-16 py-5 bg-white dark:bg-darkCard rounded-5xl border border-white dark:border-slate-800 shadow-sm focus:outline-none focus:shadow-xl transition-all text-sm font-bold text-secondary dark:text-slate-200"
         />
         <button onClick={() => setShowFilter(true)} className={`absolute right-4 top-1/2 -translate-y-1/2 p-2.5 rounded-2xl shadow-sm transition-all ${filterStatus !== 'all' ? 'bg-primary text-white' : 'bg-crema dark:bg-slate-700 text-secondary dark:text-slate-200'}`}>
@@ -101,9 +115,9 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
       {/* Active filter badge */}
       {filterStatus !== 'all' && (
         <div className="flex items-center gap-2 px-2">
-          <span className="text-[10px] font-black text-slate-400 uppercase">Filtro:</span>
+          <span className="text-[10px] font-black text-slate-400 uppercase">{T.patFilterActive}:</span>
           <button onClick={() => setFilterStatus('all')} className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-[10px] font-black uppercase">
-            {filterStatus === 'Active' ? 'Activos' : 'Inactivos'} <X className="w-3 h-3" />
+            {filterLabel} <X className="w-3 h-3" />
           </button>
         </div>
       )}
@@ -114,8 +128,8 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
           <div className="w-16 h-16 bg-crema rounded-5xl flex items-center justify-center">
             <UserX className="w-8 h-8 text-slate-300" />
           </div>
-          <p className="font-black text-secondary text-base">Sin resultados</p>
-          <p className="text-sm text-slate-400 font-medium">Intenta con otro término o agrega un paciente</p>
+          <p className="font-black text-secondary text-base">{T.patNoResults}</p>
+          <p className="text-sm text-slate-400 font-medium">{T.patNoResultsSub}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -135,14 +149,14 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
                     <button
                       onClick={e => { e.stopPropagation(); setContactPatient(patient); }}
                       className="p-2.5 bg-crema dark:bg-slate-700 text-secondary dark:text-slate-300 rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm"
-                      title="Contactar dueño"
+                      title={T.patContactTitle}
                     >
                       <Phone className="w-4 h-4" />
                     </button>
                     <button
                       onClick={e => { e.stopPropagation(); setDetailPatient(patient); }}
                       className="p-2.5 bg-crema dark:bg-slate-700 text-secondary dark:text-slate-300 rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm"
-                      title="Ver historial"
+                      title={T.patMedNotes}
                     >
                       <FileText className="w-4 h-4" />
                     </button>
@@ -150,7 +164,7 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
                 </div>
                 <div className="flex items-center gap-2 mt-3">
                   <History className="w-3.5 h-3.5 text-primary shrink-0" />
-                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">Última visita: {patient.lastVisit}</span>
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">{T.patLastVisit}: {patient.lastVisit}</span>
                 </div>
               </div>
               <ChevronRight className="w-5 h-5 text-slate-300 shrink-0" />
@@ -161,7 +175,7 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
 
       {/* Filter Modal */}
       {showFilter && (
-        <Modal title="Filtrar Pacientes" onClose={() => setShowFilter(false)}>
+        <Modal title={T.patFilterTitle} onClose={() => setShowFilter(false)}>
           <div className="space-y-3">
             {(['all', 'Active', 'Inactive'] as const).map(s => (
               <button
@@ -169,7 +183,7 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
                 onClick={() => { setFilterStatus(s); setShowFilter(false); }}
                 className={`w-full py-4 rounded-3xl font-black text-sm uppercase tracking-widest transition-all ${filterStatus === s ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-crema text-secondary hover:bg-slate-100'}`}
               >
-                {s === 'all' ? 'Todos' : s === 'Active' ? 'Solo Activos' : 'Solo Inactivos'}
+                {s === 'all' ? T.all : s === 'Active' ? T.patOnlyActive : T.patOnlyInactive}
               </button>
             ))}
           </div>
@@ -178,7 +192,7 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
 
       {/* Contact Modal */}
       {contactPatient && (
-        <Modal title="Contactar Dueño" onClose={() => setContactPatient(null)}>
+        <Modal title={T.patContactTitle} onClose={() => setContactPatient(null)}>
           <div className="space-y-4">
             <div className="flex items-center gap-4 p-4 bg-crema rounded-4xl">
               <img src={contactPatient.imageUrl} className="w-14 h-14 rounded-3xl object-cover" />
@@ -188,12 +202,12 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
               </div>
             </div>
             <div className="bg-crema p-5 rounded-4xl space-y-2">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Teléfono</span>
-              <p className="font-black text-secondary text-lg">{contactPatient.ownerPhone || 'No registrado'}</p>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.patPhone}</span>
+              <p className="font-black text-secondary text-lg">{contactPatient.ownerPhone || T.patNotRegistered}</p>
             </div>
             {contactPatient.ownerPhone && (
               <a href={`tel:${contactPatient.ownerPhone}`} className="block w-full py-4 bg-primary text-white rounded-3xl font-black text-sm text-center shadow-xl shadow-primary/20">
-                Llamar ahora
+                {T.patCallNow}
               </a>
             )}
           </div>
@@ -212,7 +226,7 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
                   <p className="text-xs text-slate-400 font-bold">{detailPatient.ownerName}</p>
                   <span className={`mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${detailPatient.status === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${detailPatient.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                    {detailPatient.status === 'Active' ? 'Activo' : 'Inactivo'}
+                    {detailPatient.status === 'Active' ? T.active : T.inactive}
                   </span>
                 </div>
               </div>
@@ -223,10 +237,10 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
             <div className="p-6 space-y-5 overflow-y-auto flex-1 no-scrollbar">
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: 'Especie', value: detailPatient.species || '—' },
-                  { label: 'Raza',    value: detailPatient.breed   || '—' },
-                  { label: 'Edad',    value: detailPatient.age    != null ? `${detailPatient.age} años` : '—' },
-                  { label: 'Peso',    value: detailPatient.weight != null ? `${detailPatient.weight} kg` : '—' },
+                  { label: T.patSpecies, value: detailPatient.species || '—' },
+                  { label: T.patBreed,   value: detailPatient.breed   || '—' },
+                  { label: T.patAge,     value: detailPatient.age    != null ? `${detailPatient.age} ${lang === 'en' ? 'yrs' : 'años'}` : '—' },
+                  { label: T.patWeight,  value: detailPatient.weight != null ? `${detailPatient.weight} kg` : '—' },
                 ].map(({ label, value }) => (
                   <div key={label} className="bg-white p-4 rounded-4xl shadow-sm">
                     <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest block mb-1">{label}</span>
@@ -235,18 +249,18 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
                 ))}
               </div>
               <div className="bg-white p-5 rounded-4xl shadow-sm">
-                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest block mb-2">Notas Médicas</span>
-                <p className="text-sm font-medium text-secondary leading-relaxed">{detailPatient.medicalNotes || 'Sin notas registradas.'}</p>
+                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest block mb-2">{T.patMedNotes}</span>
+                <p className="text-sm font-medium text-secondary leading-relaxed">{detailPatient.medicalNotes || T.patNoNotes}</p>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <button onClick={() => setEditForm(detailPatient)} className="py-4 bg-white text-secondary rounded-3xl font-black text-xs shadow-sm flex flex-col items-center gap-1 hover:bg-primary hover:text-white transition-all">
-                  <Edit2 className="w-4 h-4" />Editar
+                  <Edit2 className="w-4 h-4" />{T.edit}
                 </button>
                 <button onClick={() => handleToggleStatus(detailPatient)} className="py-4 bg-white text-secondary rounded-3xl font-black text-xs shadow-sm flex flex-col items-center gap-1 hover:bg-amber-500 hover:text-white transition-all">
-                  <Check className="w-4 h-4" />{detailPatient.status === 'Active' ? 'Desactivar' : 'Activar'}
+                  <Check className="w-4 h-4" />{detailPatient.status === 'Active' ? T.patDeactivate : T.patActivate}
                 </button>
-                <button onClick={() => handleDelete(detailPatient.id)} className="py-4 bg-white text-rose-500 rounded-3xl font-black text-xs shadow-sm flex flex-col items-center gap-1 hover:bg-rose-500 hover:text-white transition-all">
-                  <X className="w-4 h-4" />Eliminar
+                <button onClick={() => handleDelete(detailPatient)} className="py-4 bg-white text-rose-500 rounded-3xl font-black text-xs shadow-sm flex flex-col items-center gap-1 hover:bg-rose-500 hover:text-white transition-all">
+                  <X className="w-4 h-4" />{T.delete}
                 </button>
               </div>
             </div>
@@ -256,16 +270,16 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
 
       {/* Edit Modal */}
       {editForm && (
-        <Modal title={`Editar — ${editForm.petName}`} onClose={() => setEditForm(null)}>
+        <Modal title={`${T.edit} — ${editForm.petName}`} onClose={() => setEditForm(null)}>
           <div className="space-y-3">
             {[
-              { key: 'petName',    label: 'Nombre Mascota', type: 'text'   },
-              { key: 'ownerName',  label: 'Nombre Dueño',   type: 'text'   },
-              { key: 'ownerPhone', label: 'Teléfono',        type: 'tel'    },
-              { key: 'species',    label: 'Especie',          type: 'text'   },
-              { key: 'breed',      label: 'Raza',             type: 'text'   },
-              { key: 'age',        label: 'Edad (años)',       type: 'number' },
-              { key: 'weight',     label: 'Peso (kg)',         type: 'number' },
+              { key: 'petName',    label: T.patPetName,    type: 'text'   },
+              { key: 'ownerName',  label: T.patOwnerName,  type: 'text'   },
+              { key: 'ownerPhone', label: T.patOwnerPhone, type: 'tel'    },
+              { key: 'species',    label: T.patSpecies,    type: 'text'   },
+              { key: 'breed',      label: T.patBreed,      type: 'text'   },
+              { key: 'age',        label: T.patAge,        type: 'number' },
+              { key: 'weight',     label: T.patWeight,     type: 'number' },
             ].map(({ key, label, type }) => (
               <div key={key} className="space-y-1">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
@@ -278,7 +292,7 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
               </div>
             ))}
             <div className="space-y-1">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Notas Médicas</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.patMedNotes}</span>
               <textarea
                 value={editForm.medicalNotes || ''}
                 onChange={e => setEditForm({ ...editForm, medicalNotes: e.target.value })}
@@ -287,7 +301,7 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
               />
             </div>
             <button onClick={handleSaveEdit} className="w-full py-4 bg-primary text-white rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">
-              Guardar Cambios
+              {T.save}
             </button>
           </div>
         </Modal>
@@ -295,16 +309,16 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
 
       {/* Add Patient Modal */}
       {showAdd && (
-        <Modal title="Nuevo Paciente" onClose={() => { setShowAdd(false); setNewForm(BLANK_NEW); }}>
+        <Modal title={T.patAddTitle} onClose={() => { setShowAdd(false); setNewForm(BLANK_NEW); }}>
           <div className="space-y-3">
             {[
-              { key: 'petName',    label: 'Nombre Mascota *', type: 'text'   },
-              { key: 'ownerName',  label: 'Nombre Dueño *',   type: 'text'   },
-              { key: 'ownerPhone', label: 'Teléfono',          type: 'tel'    },
-              { key: 'species',    label: 'Especie',            type: 'text'   },
-              { key: 'breed',      label: 'Raza',               type: 'text'   },
-              { key: 'age',        label: 'Edad (años)',         type: 'number' },
-              { key: 'weight',     label: 'Peso (kg)',           type: 'number' },
+              { key: 'petName',    label: T.patPetName,    type: 'text'   },
+              { key: 'ownerName',  label: T.patOwnerName,  type: 'text'   },
+              { key: 'ownerPhone', label: T.patOwnerPhone, type: 'tel'    },
+              { key: 'species',    label: T.patSpecies,    type: 'text'   },
+              { key: 'breed',      label: T.patBreed,      type: 'text'   },
+              { key: 'age',        label: T.patAge,        type: 'number' },
+              { key: 'weight',     label: T.patWeight,     type: 'number' },
             ].map(({ key, label, type }) => (
               <div key={key} className="space-y-1">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
@@ -317,7 +331,7 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
               </div>
             ))}
             <div className="space-y-1">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Notas Médicas</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.patMedNotes}</span>
               <textarea
                 value={newForm.medicalNotes}
                 onChange={e => setNewForm({ ...newForm, medicalNotes: e.target.value })}
@@ -330,10 +344,35 @@ export const VetPatients: React.FC<Props> = ({ patients, onUpdatePatients }) => 
               disabled={!newForm.petName || !newForm.ownerName}
               className="w-full py-4 bg-primary text-white rounded-3xl font-black uppercase tracking-widest shadow-xl shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Agregar Paciente
+              {T.patAddBtn}
             </button>
           </div>
         </Modal>
+      )}
+
+      {/* Confirm Delete Modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-[400] bg-secondary/50 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-darkCard w-full max-w-sm rounded-5xl shadow-2xl p-8 space-y-5">
+            <div className="w-14 h-14 bg-rose-100 rounded-4xl flex items-center justify-center mx-auto">
+              <X className="w-7 h-7 text-rose-500" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-xl font-black text-secondary dark:text-slate-100">{T.confirmDeleteTitle}</h3>
+              <p className="text-sm text-slate-400 font-medium mt-2">
+                <span className="font-black text-secondary dark:text-slate-200">{confirmDelete.petName}</span> — {T.confirmDeleteMsg}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => setConfirmDelete(null)} className="py-4 bg-crema dark:bg-slate-700 text-secondary dark:text-slate-200 rounded-3xl font-black text-sm hover:bg-slate-100 transition-all">
+                {T.cancel}
+              </button>
+              <button onClick={confirmDeleteAction} className="py-4 bg-rose-500 text-white rounded-3xl font-black text-sm shadow-lg shadow-rose-200 hover:bg-rose-600 transition-all">
+                {T.delete}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

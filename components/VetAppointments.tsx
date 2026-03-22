@@ -1,6 +1,8 @@
 
 import React, { useState, useRef } from 'react';
 import { Appointment, FinancialTransaction } from '../types';
+import { useLang } from '../context/LanguageContext';
+import { translations } from '../services/i18n';
 import {
   Calendar as CalendarIcon,
   List,
@@ -23,23 +25,30 @@ interface Props {
   onAddTransaction: (t: FinancialTransaction) => void;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; dot: string; bg: string; textColor: string }> = {
-  Confirmed:  { label: 'Confirmada',   dot: 'bg-emerald-500', bg: 'bg-emerald-50',  textColor: 'text-emerald-700' },
-  Pending:    { label: 'En Espera',    dot: 'bg-amber-400',   bg: 'bg-amber-50',    textColor: 'text-amber-700'   },
-  InProgress: { label: 'En Consulta', dot: 'bg-blue-500',    bg: 'bg-blue-50',     textColor: 'text-blue-700'    },
-  Completed:  { label: 'Completada',  dot: 'bg-slate-400',   bg: 'bg-slate-100',   textColor: 'text-slate-600'   },
-  Cancelled:  { label: 'Cancelada',   dot: 'bg-rose-500',    bg: 'bg-rose-50',     textColor: 'text-rose-700'    },
-  NoShow:     { label: 'No Asistió',  dot: 'bg-orange-400',  bg: 'bg-orange-50',   textColor: 'text-orange-700'  },
+type AppStatus = 'Confirmed' | 'Pending' | 'InProgress' | 'Completed' | 'Cancelled' | 'NoShow';
+
+const STATUS_CONFIG: Record<string, { label_es: string; label_en: string; dot: string; bg: string; textColor: string }> = {
+  Confirmed:  { label_es: 'Confirmada',   label_en: 'Confirmed',      dot: 'bg-emerald-500', bg: 'bg-emerald-50',  textColor: 'text-emerald-700' },
+  Pending:    { label_es: 'En Espera',    label_en: 'Waiting',        dot: 'bg-amber-400',   bg: 'bg-amber-50',    textColor: 'text-amber-700'   },
+  InProgress: { label_es: 'En Consulta', label_en: 'In Consultation', dot: 'bg-blue-500',    bg: 'bg-blue-50',     textColor: 'text-blue-700'    },
+  Completed:  { label_es: 'Completada',  label_en: 'Completed',       dot: 'bg-slate-400',   bg: 'bg-slate-100',   textColor: 'text-slate-600'   },
+  Cancelled:  { label_es: 'Cancelada',   label_en: 'Cancelled',       dot: 'bg-rose-500',    bg: 'bg-rose-50',     textColor: 'text-rose-700'    },
+  NoShow:     { label_es: 'No Asistió',  label_en: 'No Show',         dot: 'bg-orange-400',  bg: 'bg-orange-50',   textColor: 'text-orange-700'  },
 };
 
 const MONTH_NAMES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const DAY_NAMES = ['D','L','M','X','J','V','S'];
+const MONTH_NAMES_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAY_NAMES_ES = ['D','L','M','X','J','V','S'];
+const DAY_NAMES_EN = ['S','M','T','W','T','F','S'];
 
 const todayDate = new Date();
 const todayStr = `${todayDate.getFullYear()}-${String(todayDate.getMonth()+1).padStart(2,'0')}-${String(todayDate.getDate()).padStart(2,'0')}`;
 
 export const VetAppointments: React.FC<Props> = ({ appointments, onUpdateAppointment, onAddTransaction }) => {
+  const { lang } = useLang();
+  const T = translations[lang];
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('list');
+  const [statusFilter, setStatusFilter] = useState<AppStatus | 'all'>('all');
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [calYear, setCalYear] = useState(todayDate.getFullYear());
   const [calMonth, setCalMonth] = useState(todayDate.getMonth());
@@ -50,6 +59,9 @@ export const VetAppointments: React.FC<Props> = ({ appointments, onUpdateAppoint
   const [consultationFee, setConsultationFee] = useState('');
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const MONTH_NAMES = lang === 'en' ? MONTH_NAMES_EN : MONTH_NAMES_ES;
+  const DAY_NAMES = lang === 'en' ? DAY_NAMES_EN : DAY_NAMES_ES;
 
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
   const firstDayOfWeek = new Date(calYear, calMonth, 1).getDay();
@@ -63,12 +75,14 @@ export const VetAppointments: React.FC<Props> = ({ appointments, onUpdateAppoint
       .map(a => new Date(a.date + 'T00:00:00').getDate())
   );
 
-  const selectedDateAppts = appointments.filter(a => a.date === selectedDate);
-  const todayAppts = appointments.filter(a => a.date === todayStr);
-  const upcomingAppts = appointments
-    .filter(a => a.date > todayStr && a.status !== 'Cancelled')
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 4);
+  const applyFilter = (list: Appointment[]) =>
+    statusFilter === 'all' ? list : list.filter(a => a.status === statusFilter);
+
+  const selectedDateAppts = applyFilter(appointments.filter(a => a.date === selectedDate));
+  const todayAppts = applyFilter(appointments.filter(a => a.date === todayStr));
+  const upcomingAppts = applyFilter(
+    appointments.filter(a => a.date > todayStr && a.status !== 'Cancelled')
+  ).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4);
 
   const handlePrevMonth = () => {
     if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); }
@@ -123,8 +137,8 @@ export const VetAppointments: React.FC<Props> = ({ appointments, onUpdateAppoint
     <div className="space-y-8 pb-10 animate-in fade-in duration-700">
       <div className="flex justify-between items-center px-2">
         <div>
-          <h2 className="text-2xl font-black text-secondary">Agenda</h2>
-          <p className="text-xs text-slate-400 font-medium">Gestión de citas diarias</p>
+          <h2 className="text-2xl font-black text-secondary">{T.apptTitle}</h2>
+          <p className="text-xs text-slate-400 font-medium">{T.apptSub}</p>
         </div>
         <div className="bg-white p-1 rounded-2xl border border-white shadow-sm flex">
           <button onClick={() => setViewMode('calendar')} className={`p-2 rounded-xl transition-all ${viewMode === 'calendar' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-300'}`}>
@@ -136,19 +150,43 @@ export const VetAppointments: React.FC<Props> = ({ appointments, onUpdateAppoint
         </div>
       </div>
 
+      {/* Status filter chips */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
+        {(['all', 'Confirmed', 'Pending', 'InProgress', 'Completed', 'Cancelled'] as const).map(s => {
+          const cfg = s !== 'all' ? STATUS_CONFIG[s] : null;
+          const label = s === 'all'
+            ? T.apptFilterAll
+            : lang === 'en' ? cfg!.label_en : cfg!.label_es;
+          const active = statusFilter === s;
+          return (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s as AppStatus | 'all')}
+              className={`shrink-0 px-3 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5
+                ${active
+                  ? 'bg-primary text-white shadow-md shadow-primary/20'
+                  : 'bg-white text-slate-400 border border-slate-100 hover:border-primary/20'}`}
+            >
+              {cfg && <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-white' : cfg.dot}`} />}
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
       {viewMode === 'calendar' ? (
         <div className="space-y-4">
           {/* Calendar */}
           <div className="bg-white p-6 rounded-5xl border border-white shadow-sm space-y-5">
             <div className="flex justify-between items-center">
-              <h3 className="font-black text-secondary capitalize">{MONTH_NAMES_ES[calMonth]} {calYear}</h3>
+              <h3 className="font-black text-secondary capitalize">{MONTH_NAMES[calMonth]} {calYear}</h3>
               <div className="flex gap-2">
                 <button onClick={handlePrevMonth} className="p-2 bg-crema rounded-xl text-secondary"><ChevronLeft className="w-4 h-4" /></button>
                 <button onClick={handleNextMonth} className="p-2 bg-crema rounded-xl text-secondary"><ChevronRight className="w-4 h-4" /></button>
               </div>
             </div>
             <div className="grid grid-cols-7 gap-1">
-              {DAY_NAMES.map(d => <div key={d} className="text-center text-[10px] font-black text-slate-300 uppercase py-1">{d}</div>)}
+              {DAY_NAMES.map((d, i) => <div key={i} className="text-center text-[10px] font-black text-slate-300 uppercase py-1">{d}</div>)}
               {Array.from({ length: firstDayOfWeek }).map((_, i) => <div key={`e-${i}`} />)}
               {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
                 const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
@@ -179,7 +217,7 @@ export const VetAppointments: React.FC<Props> = ({ appointments, onUpdateAppoint
               <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest capitalize">{formatDate(selectedDate)}</span>
               <div className="h-[2px] flex-1 bg-slate-100" />
             </div>
-            {selectedDateAppts.length === 0 ? <EmptyState /> : selectedDateAppts.map(a => <AppCard key={a.id} app={a} onClick={() => openDetail(a)} />)}
+            {selectedDateAppts.length === 0 ? <EmptyState T={T} /> : selectedDateAppts.map(a => <AppCard key={a.id} app={a} onClick={() => openDetail(a)} lang={lang} />)}
           </div>
         </div>
       ) : (
@@ -189,16 +227,16 @@ export const VetAppointments: React.FC<Props> = ({ appointments, onUpdateAppoint
             <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Hoy · {todayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</span>
             <div className="h-[2px] flex-1 bg-slate-100" />
           </div>
-          {todayAppts.length === 0 ? <EmptyState /> : todayAppts.map(a => <AppCard key={a.id} app={a} onClick={() => openDetail(a)} />)}
+          {todayAppts.length === 0 ? <EmptyState T={T} /> : todayAppts.map(a => <AppCard key={a.id} app={a} onClick={() => openDetail(a)} lang={lang} />)}
 
           {upcomingAppts.length > 0 && (
             <>
               <div className="flex items-center gap-3 px-2 pt-2">
                 <div className="h-[2px] flex-1 bg-slate-100" />
-                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Próximas</span>
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{T.apptUpcoming}</span>
                 <div className="h-[2px] flex-1 bg-slate-100" />
               </div>
-              {upcomingAppts.map(a => <AppCard key={a.id} app={a} onClick={() => openDetail(a)} />)}
+              {upcomingAppts.map(a => <AppCard key={a.id} app={a} onClick={() => openDetail(a)} lang={lang} />)}
             </>
           )}
         </div>
@@ -213,8 +251,8 @@ export const VetAppointments: React.FC<Props> = ({ appointments, onUpdateAppoint
                 <img src={selectedApp.petImageUrl} className="w-16 h-16 rounded-3xl object-cover shadow-lg border-2 border-white" />
                 <div>
                   <h3 className="text-xl font-black text-secondary">{selectedApp.petName}</h3>
-                  <p className="text-xs text-slate-400 font-bold">Dueño: {selectedApp.ownerName}</p>
-                  <StatusBadge status={selectedApp.status} />
+                  <p className="text-xs text-slate-400 font-bold">{T.apptOwner}: {selectedApp.ownerName}</p>
+                  <StatusBadge status={selectedApp.status} lang={lang} />
                 </div>
               </div>
               <button onClick={() => setSelectedApp(null)} className="p-2 bg-slate-50 rounded-2xl text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-all">
@@ -225,32 +263,32 @@ export const VetAppointments: React.FC<Props> = ({ appointments, onUpdateAppoint
             <div className="p-8 space-y-6 overflow-y-auto flex-1 no-scrollbar">
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white p-5 rounded-4xl shadow-sm">
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest block mb-1">Motivo</span>
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest block mb-1">{T.apptMotivo}</span>
                   <span className="text-sm font-black text-secondary">{selectedApp.reason}</span>
                 </div>
                 <div className="bg-white p-5 rounded-4xl shadow-sm">
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest block mb-1">Horario</span>
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest block mb-1">{T.apptHorario}</span>
                   <span className="text-sm font-black text-primary">{selectedApp.time}</span>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <SectionTitle title="Notas Médicas" icon={<FileText />} />
+                <SectionTitle title={T.apptMedNotes} icon={<FileText />} />
                 <textarea
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
-                  placeholder="Escribe aquí las observaciones clínicas..."
+                  placeholder={T.apptMedNotesPlaceholder}
                   className="w-full h-28 p-5 bg-white rounded-4xl border-2 border-transparent focus:border-primary/20 focus:outline-none text-sm font-medium text-secondary resize-none shadow-sm"
                 />
               </div>
 
               <div className="space-y-3">
-                <SectionTitle title="Medicamento Recetado" icon={<Pill />} />
+                <SectionTitle title={T.apptPrescription} icon={<Pill />} />
                 <input
                   type="text"
                   value={prescription}
                   onChange={e => setPrescription(e.target.value)}
-                  placeholder="Nombre del fármaco y dosis..."
+                  placeholder={T.apptPrescriptionPlaceholder}
                   className="w-full p-5 bg-white rounded-4xl border-2 border-transparent focus:border-primary/20 focus:outline-none text-sm font-bold text-secondary shadow-sm"
                 />
               </div>
@@ -270,7 +308,7 @@ export const VetAppointments: React.FC<Props> = ({ appointments, onUpdateAppoint
                   ) : (
                     <>
                       <Upload className="w-6 h-6 text-slate-300 group-hover:text-primary transition-colors" />
-                      <span className="text-[10px] font-black text-slate-400 uppercase">Subir Estudio</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase">{T.apptUploadStudy}</span>
                     </>
                   )}
                 </button>
@@ -281,7 +319,7 @@ export const VetAppointments: React.FC<Props> = ({ appointments, onUpdateAppoint
                 >
                   <CheckCircle className="w-6 h-6" />
                   <span className="text-[10px] font-black uppercase tracking-widest">
-                    {selectedApp.status === 'Completed' ? 'Completada' : 'Finalizar'}
+                    {selectedApp.status === 'Completed' ? T.apptCompleted : T.apptFinalize}
                   </span>
                 </button>
               </div>
@@ -296,14 +334,14 @@ export const VetAppointments: React.FC<Props> = ({ appointments, onUpdateAppoint
           <div className="bg-white w-full max-w-sm rounded-t-5xl sm:rounded-5xl shadow-2xl">
             <div className="p-8 space-y-6">
               <div className="flex justify-between items-center">
-                <h3 className="text-xl font-black text-secondary">Cobro de Consulta</h3>
+                <h3 className="text-xl font-black text-secondary">{T.apptChargeTitle}</h3>
                 <button onClick={() => setShowPaymentModal(false)} className="p-2 bg-crema rounded-xl text-slate-400"><X className="w-5 h-5" /></button>
               </div>
               <p className="text-sm text-slate-500 font-medium">
-                Ingresa el monto cobrado por la consulta de <span className="font-black text-secondary">{selectedApp.petName}</span>.
+                {T.apptChargeMsg} <span className="font-black text-secondary">{selectedApp.petName}</span>.
               </p>
               <div className="space-y-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monto (MXN)</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.apptChargeAmount}</span>
                 <div className="flex items-center bg-crema rounded-3xl px-5 gap-2">
                   <DollarSign className="w-5 h-5 text-primary shrink-0" />
                   <input
@@ -318,7 +356,7 @@ export const VetAppointments: React.FC<Props> = ({ appointments, onUpdateAppoint
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <button onClick={() => doFinalize(0)} className="py-4 bg-slate-100 text-secondary rounded-3xl font-black text-sm hover:bg-slate-200 transition-all">
-                  Sin cobro
+                  {T.apptNoCharge}
                 </button>
                 <button onClick={() => doFinalize(parseFloat(consultationFee) || 0)} className="py-4 bg-primary text-white rounded-3xl font-black text-sm shadow-xl shadow-primary/20 hover:bg-secondary transition-all">
                   Confirmar
@@ -332,8 +370,9 @@ export const VetAppointments: React.FC<Props> = ({ appointments, onUpdateAppoint
   );
 };
 
-const AppCard: React.FC<{ app: Appointment; onClick: () => void }> = ({ app, onClick }) => {
+const AppCard: React.FC<{ app: Appointment; onClick: () => void; lang: string }> = ({ app, onClick, lang }) => {
   const cfg = STATUS_CONFIG[app.status] || STATUS_CONFIG.Pending;
+  const label = lang === 'en' ? cfg.label_en : cfg.label_es;
   return (
     <div onClick={onClick} className="bg-white p-6 rounded-5xl border border-white shadow-sm hover:shadow-xl transition-all flex items-center gap-5 group cursor-pointer">
       <div className="relative shrink-0">
@@ -350,7 +389,7 @@ const AppCard: React.FC<{ app: Appointment; onClick: () => void }> = ({ app, onC
         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">{app.reason} · {app.ownerName}</p>
         <span className={`mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${cfg.bg} ${cfg.textColor}`}>
           <span className={`w-1 h-1 rounded-full ${cfg.dot}`} />
-          {cfg.label}
+          {label}
         </span>
       </div>
       <div className="w-10 h-10 bg-crema rounded-2xl flex items-center justify-center text-secondary group-hover:bg-primary group-hover:text-white transition-all shrink-0">
@@ -360,24 +399,24 @@ const AppCard: React.FC<{ app: Appointment; onClick: () => void }> = ({ app, onC
   );
 };
 
-const EmptyState = () => (
+const EmptyState = ({ T }: { T: any }) => (
   <div className="flex flex-col items-center justify-center py-14 gap-4">
     <div className="w-20 h-20 bg-crema rounded-5xl flex items-center justify-center">
       <CalendarDays className="w-10 h-10 text-slate-300" />
     </div>
     <div className="text-center">
-      <h4 className="font-black text-secondary text-base">Sin citas para este día</h4>
-      <p className="text-sm text-slate-400 font-medium mt-1 max-w-xs">No tienes citas agendadas. Disfruta tu tiempo libre.</p>
+      <h4 className="font-black text-secondary text-base">{T.apptNoAppts}</h4>
+      <p className="text-sm text-slate-400 font-medium mt-1 max-w-xs">{T.apptNoApptsSub}</p>
     </div>
   </div>
 );
 
-const StatusBadge = ({ status }: { status: string }) => {
+const StatusBadge = ({ status, lang }: { status: string; lang: string }) => {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.Pending;
   return (
     <span className={`mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${cfg.bg} ${cfg.textColor}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-      {cfg.label}
+      {lang === 'en' ? cfg.label_en : cfg.label_es}
     </span>
   );
 };

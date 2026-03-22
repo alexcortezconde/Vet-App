@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { LanguageProvider } from './context/LanguageContext';
 import { Layout } from './components/Layout';
 import { VetSearch } from './components/VetSearch';
 import { SocialFeed } from './components/SocialFeed';
@@ -163,7 +164,7 @@ const App: React.FC = () => {
   const derivedMissions = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const missions: Array<{ id: string; type: 'vaccine' | 'appointment'; title: string; description: string; date: string; typeLabel: string; petName: string; daysUntil: number }> = [];
+    const missions: Array<{ id: string; type: 'vaccine' | 'appointment'; title: string; description: string; date: string; actualDate: string; typeLabel: string; petName: string; daysUntil: number }> = [];
 
     // Handles both YYYY-MM-DD (initial data) and DD/MM/YYYY (CalendarPicker output)
     const parseDate = (s: string) => {
@@ -181,12 +182,14 @@ const App: React.FC = () => {
     currentPet.vaccines.forEach(v => {
       const dueDate = parseDate(v.nextDue);
       const daysUntil = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const dueDateFormatted = parseDate(v.nextDue).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
       missions.push({
         id: `vaccine-${currentPet.id}-${v.name}`,
         type: 'vaccine',
         title: v.name,
         description: `La próxima dosis de ${v.name} ${daysUntil < 0 ? `venció hace ${Math.abs(daysUntil)} días` : daysUntil === 0 ? 'vence hoy' : `vence en ${daysUntil} días`}. Agenda una cita con tu veterinario.`,
         date: daysUntil < 0 ? 'VENCIDA' : daysUntil === 0 ? 'Hoy' : `en ${daysUntil} días`,
+        actualDate: dueDateFormatted,
         typeLabel: daysUntil < 0 ? 'Urgente' : 'Salud',
         petName: currentPet.name,
         daysUntil,
@@ -199,12 +202,14 @@ const App: React.FC = () => {
         const appDate = parseDate(app.date);
         const daysUntil = Math.ceil((appDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
         if (daysUntil >= 0) {
+          const appDateFormatted = appDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
           missions.push({
             id: `appointment-${app.id}`,
             type: 'appointment',
             title: app.reason,
             description: `${app.petName} tiene una cita ${daysUntil === 0 ? 'hoy' : `en ${daysUntil} días`}.`,
             date: daysUntil === 0 ? 'Hoy' : `en ${daysUntil} días`,
+            actualDate: appDateFormatted,
             typeLabel: 'Cita',
             petName: app.petName,
             daysUntil,
@@ -602,7 +607,13 @@ const App: React.FC = () => {
               {selectedMission.type === 'vaccine' ? <Syringe className="w-8 h-8" /> : <Calendar className="w-8 h-8" />}
             </div>
             <h3 className="text-2xl font-black text-secondary dark:text-white mb-2">{selectedMission.title}</h3>
-            <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-6">{selectedMission.description}</p>
+            <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed mb-3">{selectedMission.description}</p>
+            {selectedMission.actualDate && (
+              <div className="flex items-center gap-2 bg-crema dark:bg-slate-700 px-4 py-2.5 rounded-2xl mb-6">
+                <Calendar className="w-4 h-4 text-primary shrink-0" />
+                <span className="text-xs font-black text-secondary dark:text-slate-200 capitalize">{selectedMission.actualDate}</span>
+              </div>
+            )}
             <button
               onClick={() => { setSelectedMission(null); setActiveTab('search'); }}
               className="w-full bg-primary text-white font-black py-3 rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all mb-4"
@@ -1099,4 +1110,10 @@ const CompletionSlider = ({ onComplete }: { onComplete: () => void }) => {
   );
 };
 
-export default App;
+const AppWithProviders: React.FC = () => (
+  <LanguageProvider>
+    <App />
+  </LanguageProvider>
+);
+
+export default AppWithProviders;
