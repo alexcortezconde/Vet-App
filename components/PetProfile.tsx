@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Pet, Appointment } from '../types';
 import { CalendarPicker } from './CalendarPicker';
 import {
@@ -59,6 +59,15 @@ export const PetProfile: React.FC<PetProfileProps> = ({
   onDeleteAppointment,
 }) => {
   const [showUpload, setShowUpload] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    onUpdatePet?.({ ...pet, imageUrl: url });
+    setShowUpload(false);
+  };
   const [showRecetaDetail, setShowRecetaDetail] = useState(false);
   const [showAddVaccine, setShowAddVaccine] = useState(false);
   const [newVaccineName, setNewVaccineName] = useState('');
@@ -702,7 +711,19 @@ export const PetProfile: React.FC<PetProfileProps> = ({
                 <p className="text-sm text-slate-400 font-medium mt-2">Sube una imagen clara de {pet.name}</p>
               </div>
               <div className="space-y-3">
-                <button className="w-full py-4 bg-primary text-white rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">Elegir Archivo</button>
+                <input
+                  type="file"
+                  ref={photoInputRef}
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => photoInputRef.current?.click()}
+                  className="w-full py-4 bg-primary text-white rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20"
+                >
+                  Elegir Archivo
+                </button>
                 <button onClick={() => setShowUpload(false)} className="w-full py-4 bg-crema dark:bg-slate-700 text-secondary dark:text-slate-200 rounded-3xl font-black uppercase text-[10px] tracking-widest">Cancelar</button>
               </div>
            </div>
