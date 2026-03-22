@@ -23,7 +23,22 @@ export interface Appointment {
   time: string;
   date: string;
   vetName?: string;
-  status: 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled';
+  status: 'Confirmed' | 'Pending' | 'InProgress' | 'Completed' | 'Cancelled' | 'NoShow';
+  notes?: string;
+  prescription?: string;
+  consultationFee?: number;
+}
+
+export interface FinancialTransaction {
+  id: string;
+  date: string;
+  time: string;
+  description: string;
+  amount: number;
+  type: 'income' | 'expense';
+  category: 'consultation' | 'sale' | 'supply' | 'other';
+  appointmentId?: string;
+  patientName?: string;
 }
 
 export interface InventoryItem {
@@ -32,15 +47,25 @@ export interface InventoryItem {
   stock: number;
   minThreshold: number;
   unitPrice: number;
+  category?: string;
+  description?: string;
+  supplier?: string;
+  expiryDate?: string;
 }
 
 export interface PatientRecord {
   id: string;
   petName: string;
   ownerName: string;
+  ownerPhone?: string;
   lastVisit: string;
   status: 'Active' | 'Inactive';
   imageUrl: string;
+  species?: string;
+  breed?: string;
+  age?: number;
+  weight?: number;
+  medicalNotes?: string;
 }
 
 export interface Vaccine {

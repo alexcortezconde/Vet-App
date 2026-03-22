@@ -12,7 +12,7 @@ import { VetAppointments } from './components/VetAppointments';
 import { VetFinancials } from './components/VetFinancials';
 import { Settings } from './components/Settings';
 import { Auth } from './components/Auth';
-import { Pet, AppRole, User, Appointment } from './types';
+import { Pet, AppRole, User, Appointment, FinancialTransaction, PatientRecord, InventoryItem } from './types';
 import {
   Shield, ChevronRight, CheckCircle2, Scan, PhoneCall, ClipboardList,
   Utensils, Pill, History, MapPin, Phone, Plus, Calendar, AlertCircle,
@@ -89,6 +89,51 @@ const initialPets: Pet[] = [
   }
 ];
 
+// ── Vet demo data helpers ─────────────────────────────────────────────────────
+const _today = new Date();
+const _fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const _add = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.getDate()+n); return r; };
+
+const initialVetAppointments: Appointment[] = [
+  { id: 'va1', petName: 'Bruno',  ownerName: 'Juan Pérez',   petImageUrl: 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&q=80&w=400', reason: 'Vacuna Rabia',     time: '09:00 AM', date: _fmt(_today),         status: 'Confirmed'  },
+  { id: 'va2', petName: 'Luna',   ownerName: 'Ana García',   petImageUrl: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=400', reason: 'Control Anual',    time: '10:30 AM', date: _fmt(_today),         status: 'Pending'    },
+  { id: 'va3', petName: 'Max',    ownerName: 'Carlos Ruiz',  petImageUrl: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&q=80&w=400', reason: 'Alergia Cutánea',  time: '12:00 PM', date: _fmt(_today),         status: 'InProgress' },
+  { id: 'va4', petName: 'Bella',  ownerName: 'Laura M.',     petImageUrl: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=400', reason: 'Desparasitación', time: '02:00 PM', date: _fmt(_today),         status: 'Completed', consultationFee: 450 },
+  { id: 'va5', petName: 'Coco',   ownerName: 'María Torres', petImageUrl: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=400', reason: 'Consulta General', time: '09:30 AM', date: _fmt(_add(_today,1)),  status: 'Confirmed'  },
+  { id: 'va6', petName: 'Rex',    ownerName: 'Pedro Gómez',  petImageUrl: 'https://images.unsplash.com/photo-1561037404-61cd46aa615b?auto=format&fit=crop&q=80&w=400', reason: 'Radiografía',      time: '11:00 AM', date: _fmt(_add(_today,1)),  status: 'Pending'    },
+  { id: 'va7', petName: 'Mia',    ownerName: 'Sofia López',  petImageUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=400', reason: 'Control Post-Op', time: '10:00 AM', date: _fmt(_add(_today,3)),  status: 'Confirmed'  },
+  { id: 'va8', petName: 'Thor',   ownerName: 'Roberto Cruz', petImageUrl: 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=400', reason: 'Limpieza Dental',  time: '03:00 PM', date: _fmt(_add(_today,5)),  status: 'Pending'    },
+  { id: 'va9', petName: 'Kira',   ownerName: 'Luis Toro',    petImageUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=400', reason: 'Vacuna Triple',    time: '08:00 AM', date: _fmt(_add(_today,-1)), status: 'Completed', consultationFee: 380 },
+  { id: 'va10',petName: 'Nala',   ownerName: 'Diana Vega',   petImageUrl: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=400', reason: 'Chequeo General', time: '04:00 PM', date: _fmt(_add(_today,7)),  status: 'Pending'    },
+];
+
+const initialVetTransactions: FinancialTransaction[] = [
+  { id: 'tx1', date: _fmt(_add(_today,-1)), time: '08:45', description: 'Consulta: Kira - Vacuna Triple',    amount: 380,  type: 'income',  category: 'consultation', patientName: 'Kira'  },
+  { id: 'tx2', date: _fmt(_add(_today,-2)), time: '11:00', description: 'Venta: Bravecto 250mg',             amount: 320,  type: 'income',  category: 'sale'                               },
+  { id: 'tx3', date: _fmt(_add(_today,-3)), time: '15:00', description: 'Reposición Stock: Vacunas',         amount: 1200, type: 'expense', category: 'supply'                             },
+  { id: 'tx4', date: _fmt(_add(_today,-5)), time: '10:30', description: 'Consulta: Bruno - Desparasitación', amount: 450,  type: 'income',  category: 'consultation', patientName: 'Bruno' },
+  { id: 'tx5', date: _fmt(_add(_today,-7)), time: '09:15', description: 'Consulta: Luna - Control Anual',    amount: 350,  type: 'income',  category: 'consultation', patientName: 'Luna'  },
+  { id: 'tx6', date: _fmt(_add(_today,-10)),time: '14:00', description: 'Venta: Shampoo Medicado x3',        amount: 90,   type: 'income',  category: 'sale'                               },
+  { id: 'tx7', date: _fmt(_add(_today,-12)),time: '16:00', description: 'Reposición: Antibióticos',          amount: 480,  type: 'expense', category: 'supply'                             },
+];
+
+const initialVetPatients: PatientRecord[] = [
+  { id: 'vp1', petName: 'Bruno', ownerName: 'Juan Pérez',   ownerPhone: '+52 55 1234 5678', lastVisit: _fmt(_add(_today,-5)),  status: 'Active',   imageUrl: 'https://images.unsplash.com/photo-1591768575198-88dac53fbd0a?auto=format&fit=crop&q=80&w=200',  species: 'Perro', breed: 'Golden Retriever', age: 3,  weight: 28.5, medicalNotes: 'Paciente activo sin antecedentes de alergias. Vacunas al día.' },
+  { id: 'vp2', petName: 'Luna',  ownerName: 'Ana García',   ownerPhone: '+52 55 8765 4321', lastVisit: _fmt(_add(_today,-10)), status: 'Active',   imageUrl: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=200',  species: 'Perro', breed: 'Border Collie',   age: 5,  weight: 18.2, medicalNotes: 'Tratamiento de otitis concluido. Próximo control en 3 meses.' },
+  { id: 'vp3', petName: 'Kira',  ownerName: 'Luis Toro',    ownerPhone: '+52 55 5555 0000', lastVisit: _fmt(_add(_today,-1)),  status: 'Active',   imageUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=200',  species: 'Perro', breed: 'Husky Siberiano',  age: 4,  weight: 22.0, medicalNotes: 'Sin condiciones crónicas. Vacuna triple reciente.' },
+  { id: 'vp4', petName: 'Max',   ownerName: 'Carlos Ruiz',  ownerPhone: '+52 55 9999 1111', lastVisit: '2024-02-10',           status: 'Inactive', imageUrl: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&q=80&w=200',  species: 'Perro', breed: 'Poodle',           age: 7,  weight: 8.5,  medicalNotes: 'Alergia cutánea. Requiere revisión periódica.' },
+  { id: 'vp5', petName: 'Coco',  ownerName: 'María Torres', ownerPhone: '+52 55 4444 7777', lastVisit: _fmt(_add(_today,-20)), status: 'Active',   imageUrl: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=200', species: 'Perro', breed: 'Labrador',         age: 2,  weight: 24.0, medicalNotes: 'Paciente nuevo. Primera consulta de rutina.' },
+];
+
+const initialVetInventory: InventoryItem[] = [
+  { id: 'vi1', name: 'Vacuna Rabia X-10',       stock: 5,  minThreshold: 10, unitPrice: 25, category: 'Vacunas',         description: 'Vacuna antirrábica de alta eficacia. Dosis única anual.',          supplier: 'Zoetis',            expiryDate: '2026-12-31' },
+  { id: 'vi2', name: 'Desparasitante Bravecto',  stock: 42, minThreshold: 15, unitPrice: 18, category: 'Antiparasitarios', description: 'Control de pulgas y garrapatas. Duración 12 semanas.',             supplier: 'MSD Animal Health', expiryDate: '2027-06-30' },
+  { id: 'vi3', name: 'Antibiótico Amoxicilina',  stock: 2,  minThreshold: 5,  unitPrice: 12, category: 'Antibióticos',    description: 'Amoxicilina 500mg. Antibiótico de amplio espectro.',               supplier: 'Pharvet',           expiryDate: '2026-08-15' },
+  { id: 'vi4', name: 'Shampoo Medicado',         stock: 15, minThreshold: 5,  unitPrice: 30, category: 'Dermatología',    description: 'Tratamiento para dermatitis y problemas cutáneos.',                supplier: 'Virbac',            expiryDate: '2027-03-20' },
+  { id: 'vi5', name: 'Suero Fisiológico 1L',     stock: 20, minThreshold: 8,  unitPrice: 8,  category: 'Insumos',         description: 'Solución salina estéril para procedimientos clínicos.',            supplier: 'Baxter',            expiryDate: '2026-10-01' },
+  { id: 'vi6', name: 'Jeringa 5ml (x50)',        stock: 3,  minThreshold: 5,  unitPrice: 15, category: 'Insumos',         description: 'Jeringas desechables estériles para inyecciones y extracciones.',  supplier: 'BD Medical',        expiryDate: '2028-01-01' },
+];
+
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
@@ -107,6 +152,11 @@ const App: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [lastMainTab, setLastMainTab] = useState('home');
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
+  // Vet-specific shared state
+  const [vetAppointments, setVetAppointments] = useState<Appointment[]>(initialVetAppointments);
+  const [vetTransactions, setVetTransactions] = useState<FinancialTransaction[]>(initialVetTransactions);
+  const [vetPatients, setVetPatients] = useState<PatientRecord[]>(initialVetPatients);
+  const [vetInventory, setVetInventory] = useState<InventoryItem[]>(initialVetInventory);
 
   const currentPet = pets.find(p => p.id === selectedPetId) || pets[0];
 
@@ -185,9 +235,10 @@ const App: React.FC = () => {
   }, [notification]);
 
   const handleLogin = (email: string, selectedRole: AppRole) => {
+    const name = selectedRole === AppRole.VETERINARIAN ? 'Alejandro Pascal' : email.split('@')[0];
     setUser({
       id: 'user-1',
-      name: email.split('@')[0],
+      name,
       email: email,
       role: selectedRole
     });
@@ -319,13 +370,35 @@ const App: React.FC = () => {
     const isVet = role === AppRole.VETERINARIAN;
 
     if (isVet) {
+      const vetProps = {
+        appointments: vetAppointments,
+        patients: vetPatients,
+        transactions: vetTransactions,
+        onNavigate: setActiveTab,
+      };
       switch (activeTab) {
-        case 'home': return <VetDashboard />;
-        case 'appointments': return <VetAppointments />;
-        case 'patients': return <VetPatients />;
-        case 'inventory': return <VetInventory />;
-        case 'financials': return <VetFinancials />;
-        default: return <VetDashboard />;
+        case 'home': return <VetDashboard {...vetProps} />;
+        case 'appointments': return (
+          <VetAppointments
+            appointments={vetAppointments}
+            onUpdateAppointment={a => setVetAppointments(prev => prev.map(x => x.id === a.id ? a : x))}
+            onAddTransaction={t => setVetTransactions(prev => [t, ...prev])}
+          />
+        );
+        case 'patients': return (
+          <VetPatients
+            patients={vetPatients}
+            onUpdatePatients={setVetPatients}
+          />
+        );
+        case 'inventory': return (
+          <VetInventory
+            inventory={vetInventory}
+            onUpdateInventory={setVetInventory}
+          />
+        );
+        case 'financials': return <VetFinancials transactions={vetTransactions} />;
+        default: return <VetDashboard {...vetProps} />;
       }
     }
 
